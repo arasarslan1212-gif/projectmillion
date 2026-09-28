@@ -1,0 +1,16 @@
+.env
+*.db
+*.db-wal
+*.db-shm
+__pycache__/
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+.DS_Store
+coverage/

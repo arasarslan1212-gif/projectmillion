@@ -1,0 +1,42 @@
+# `docker compose up` starts PostgreSQL, the engine API, the scheduler worker and the web app.
+# With no API keys it runs in mock mode (synthetic fixtures). Copy .env.example to .env to configure.
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: stocks
+      POSTGRES_PASSWORD: stocks
+      POSTGRES_DB: stocks
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U stocks"]
+      interval: 5s
+      retries: 10
+
+  engine:
+    build: { context: ., dockerfile: services/engine/Dockerfile }
+    env_file: [{ path: .env, required: false }]
+    environment:
+      DATABASE_URL: postgresql+psycopg://stocks:stocks@db:5432/stocks
+      CORS_ORIGINS: http://localhost:3000
+    depends_on: { db: { condition: service_healthy } }
+    ports: ["8000:8000"]
+
+  worker:
+    build: { context: ., dockerfile: services/engine/Dockerfile }
+    env_file: [{ path: .env, required: false }]
+    environment:
+      DATABASE_URL: postgresql+psycopg://stocks:stocks@db:5432/stocks
+      ENABLE_SCHEDULER: "true"
+    command: ["python", "-m", "engine.jobs.scheduler"]
+    depends_on: [engine]
+
+  web:
+    build: { context: ., dockerfile: apps/web/Dockerfile }
+    environment:
+      ENGINE_URL: http://engine:8000
+    depends_on: [engine]
+    ports: ["3000:3000"]
+
+volumes:
+  pgdata:

@@ -46,3 +46,15 @@ Compose files are provided, but the Docker daemon isn't available here. Local ve
 
 ### D-012: PDF export
 PDF export uses a dedicated print stylesheet plus the browser's print-to-PDF. This needs no server dependency, and what you see is what you get. Server-side rendering with Playwright is on the ROADMAP.
+
+### D-013: The synthetic set is generated in-process, and fixture sets never mix
+The synthetic "fixtures" are served by an in-process HTTP transport (`engine/synthetic/server.py`), not stored as files. It speaks each provider's documented response shape, so the real adapters parse it exactly as they would parse live data. It is deterministic (seeded), which keeps the repository small and stops synthetic fixtures from going stale. Mock mode uses exactly one set (`FIXTURE_SET`: `recorded` | `synthetic` | `auto`). Synthetic companies can therefore never be ranked against real ones, and real benchmark tickers (SPY, XLK, …) are never given synthetic prices: the synthetic set uses its own benchmarks (`ZZMKT`, `ZZSTK`, …).
+
+### D-014: Chart palette
+Charts use the validated reference palette from the data-viz method (fixed categorical order, reserved status colors, one-hue sequential, blue↔red diverging with a gray midpoint), defined once as CSS tokens in `apps/web/app/globals.css` for light and dark themes. Muted text is darkened to `#6b6a65`, so small text meets WCAG AA (4.5:1) on the light surface.
+
+### D-015: Name
+Working name "Candor" (fits the honesty-first product). Rename it in `apps/web/lib/legal.ts`.
+
+### D-016: Every indicator is computed in the engine
+SMA/EMA/Bollinger/RSI/MACD are computed in Python and sent with the chart data, so the browser only draws. The price chart's "% compare" mode uses the chart library's percentage scale, which rebases each displayed series to its first visible value. That is display scaling, not a new figure.

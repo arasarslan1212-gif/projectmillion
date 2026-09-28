@@ -1,0 +1,9 @@
+export const APP_NAME = "Candor";
+
+export const DISCLAIMER_SHORT =
+  "Model estimate for education and information only; not investment advice. Estimates can be wrong.";
+
+export const DISCLAIMER_FULL =
+  `${APP_NAME} is for education and information only and is not investment advice. ` +
+  `${APP_NAME} is not a registered investment adviser or broker-dealer. Ratings, price targets and ` +
+  "probabilities are model estimates that can be wrong. Past performance does not predict future results.";

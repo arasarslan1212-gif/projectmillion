@@ -1,0 +1,178 @@
+# Engine configuration: every weight, threshold and assumption lives here.
+# The hash of this file (canonical JSON) is stamped on every report and snapshot,
+# and the Methodology page is generated from it.
+config_version: 1
+
+data:
+  ttl_seconds:
+    symbols: 2592000        # 30 days
+    submissions: 21600      # 6 hours; fundamentals refresh when a new 10-K/10-Q appears here
+    fundamentals: 604800    # upper bound; normally invalidated by a new filing
+    quote: 300
+    daily_bars: 43200
+    profile: 604800
+    estimates: 86400
+    earnings: 86400
+    analyst_actions: 86400
+    news: 1200
+    insiders: 43200
+    institutions: 604800
+    short_interest: 86400
+    macro: 86400
+    frames: 2592000
+    universe: 2592000
+    documents: 2592000
+    error: 600              # failed fetches are retried after this long
+  price_history_years: 12
+  peer_price_days: 420
+  news_lookback_days: 365
+  insider_lookback_days: 730
+
+pit:
+  # SEC frames carry no filing date; in point-in-time mode a calendar-year frame is only
+  # used once this many days have passed since the year ended (conservative filing lag).
+  frames_filing_lag_days: 120
+
+benchmarks:
+  market: SPY
+  market_label: "SPY (S&P 500 proxy)"
+  sector_etfs:
+    technology: XLK
+    financials: XLF
+    real_estate: XLRE
+    utilities: XLU
+    health_care: XLV
+    energy: XLE
+    industrials: XLI
+    consumer_discretionary: XLY
+    consumer_staples: XLP
+    materials: XLB
+    communication: XLC
+  synthetic:
+    market: ZZMKT
+    market_label: "ZZMKT (synthetic market index)"
+    sector_etfs:
+      technology: ZZSTK
+      financials: ZZSFN
+      real_estate: ZZSRE
+      utilities: ZZSUT
+      health_care: ZZSHC
+      energy: ZZSEN
+      industrials: ZZSIN
+      consumer_discretionary: ZZSCD
+      consumer_staples: ZZSCS
+      materials: ZZSMT
+      communication: ZZSCM
+
+# Sector detection. GICS is proprietary, so sectors are approximated from SEC SIC codes.
+# Ranges are inclusive; the first matching rule wins.
+sectors:
+  sic_rules:
+    - {range: [1311, 1389], sector: energy}
+    - {range: [2911, 2999], sector: energy}
+    - {range: [4610, 4619], sector: energy}
+    - {range: [5171, 5172], sector: energy}
+    - {range: [1000, 1499], sector: materials}
+    - {range: [100, 999], sector: consumer_staples}
+    - {range: [1500, 1799], sector: industrials}
+    - {range: [2000, 2199], sector: consumer_staples}
+    - {range: [2200, 2399], sector: consumer_discretionary}
+    - {range: [2400, 2499], sector: materials}
+    - {range: [2500, 2599], sector: consumer_discretionary}
+    - {range: [2600, 2699], sector: materials}
+    - {range: [2700, 2799], sector: communication}
+    - {range: [2830, 2836], sector: health_care}
+    - {range: [2840, 2844], sector: consumer_staples}
+    - {range: [2800, 2899], sector: materials}
+    - {range: [3000, 3099], sector: materials}
+    - {range: [3100, 3199], sector: consumer_discretionary}
+    - {range: [3200, 3399], sector: materials}
+    - {range: [3400, 3499], sector: industrials}
+    - {range: [3570, 3579], sector: technology}
+    - {range: [3500, 3599], sector: industrials}
+    - {range: [3630, 3639], sector: consumer_discretionary}
+    - {range: [3600, 3699], sector: technology}
+    - {range: [3710, 3716], sector: consumer_discretionary}
+    - {range: [3700, 3799], sector: industrials}
+    - {range: [3840, 3851], sector: health_care}
+    - {range: [3812, 3812], sector: industrials}
+    - {range: [3800, 3899], sector: technology}
+    - {range: [3900, 3999], sector: consumer_discretionary}
+    - {range: [4000, 4799], sector: industrials}
+    - {range: [4800, 4899], sector: communication}
+    - {range: [4953, 4955], sector: industrials}
+    - {range: [4900, 4999], sector: utilities}
+    - {range: [5122, 5122], sector: health_care}
+    - {range: [5000, 5199], sector: industrials}
+    - {range: [5400, 5499], sector: consumer_staples}
+    - {range: [5912, 5912], sector: consumer_staples}
+    - {range: [5200, 5999], sector: consumer_discretionary}
+    - {range: [6500, 6553], sector: real_estate}
+    - {range: [6798, 6798], sector: real_estate}
+    - {range: [6000, 6799], sector: financials}
+    - {range: [7000, 7099], sector: consumer_discretionary}
+    - {range: [7200, 7299], sector: consumer_discretionary}
+    - {range: [7310, 7319], sector: communication}
+    - {range: [7370, 7379], sector: technology}
+    - {range: [7300, 7399], sector: industrials}
+    - {range: [7800, 7899], sector: communication}
+    - {range: [7900, 7999], sector: consumer_discretionary}
+    - {range: [8000, 8099], sector: health_care}
+    - {range: [8731, 8731], sector: health_care}
+    - {range: [8200, 8299], sector: consumer_discretionary}
+    - {range: [8700, 8799], sector: industrials}
+    - {range: [9995, 9995], sector: financials}
+  default_sector: industrials
+  labels:
+    technology: Technology
+    financials: Financials
+    real_estate: Real Estate
+    utilities: Utilities
+    health_care: Health Care
+    energy: Energy
+    industrials: Industrials
+    consumer_discretionary: Consumer Discretionary
+    consumer_staples: Consumer Staples
+    materials: Materials
+    communication: Communication Services
+
+  # Analysis profiles switch metrics and valuation models.
+  profile_rules:
+    - {profile: bank, sic: [6021, 6022, 6029, 6035, 6036]}
+    - {profile: insurer, sic: [6311, 6321, 6324, 6331, 6351, 6361, 6399, 6411]}
+    - {profile: reit, sic: [6798]}
+    - {profile: utility, sic_range: [4900, 4952]}
+    - {profile: utility, sic_range: [4956, 4999]}
+    - {profile: biotech, sic: [2833, 2834, 2835, 2836, 8731]}
+    - {profile: financial_other, sic_range: [6000, 6799]}
+    - {profile: energy, sic: [1311, 1381, 1382, 1389, 2911, 4610, 4612, 4613, 5171, 5172]}
+    - {profile: software, sic_range: [7370, 7379]}
+    - {profile: retail, sic_range: [5200, 5999]}
+  default_profile: general
+  # Overlays applied after SIC-based detection (non-financial profiles only).
+  growth_unprofitable:
+    max_ttm_operating_margin: 0.0
+    min_revenue_growth: 0.15
+  biotech_pipeline:
+    # A biotech is "pipeline-driven" if revenue is small or operating losses are large.
+    max_revenue_usd: 250000000
+    min_rnd_to_revenue: 0.5
+  profile_labels:
+    general: General
+    bank: Bank
+    insurer: Insurer
+    reit: REIT
+    utility: Utility
+    biotech: Biotech / pharma
+    biotech_pipeline: Pipeline-driven biotech
+    financial_other: Other financial
+    energy: Energy
+    software: Software
+    retail: Retail
+    growth_unprofitable: Pre-profit growth
+
+peers:
+  max_peers: 12
+  min_peers_for_percentiles: 8
+  # Size similarity: prefer peers within this factor of the company's revenue.
+  size_band: 10.0

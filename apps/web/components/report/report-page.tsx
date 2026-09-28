@@ -1,0 +1,112 @@
+"use client";
+
+import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
+import { PriceChart } from "@/components/charts/price-chart";
+import { MissingNote, SectionShell } from "@/components/report/section-shell";
+import { getJSON, useSection } from "@/lib/api";
+import { formatDateTime } from "@/lib/format";
+import { DISCLAIMER_SHORT } from "@/lib/legal";
+import { pushRecent } from "@/lib/recent";
+import { ReportHeader } from "./header";
+import { SnapshotStats } from "./overview";
+
+const NAV = [
+  { id: "snapshot", label: "Snapshot" },
+  { id: "chart", label: "Chart" },
+];
+
+export function ReportPage({ ticker }: { ticker: string }) {
+  const [version, setVersion] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+  const company = useSection(ticker, "company", version);
+  const chart = useSection(ticker, "chart", version);
+
+  useEffect(() => {
+    if (company.data) pushRecent(company.data.identity.ticker);
+  }, [company.data]);
+
+  const refresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await getJSON(`/report/${encodeURIComponent(ticker)}/refresh`, { method: "POST" });
+    } finally {
+      setVersion((v) => v + 1);
+      setRefreshing(false);
+    }
+  }, [ticker]);
+
+  if (company.notFound) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-16">
+        <h1 className="text-xl font-semibold">Ticker not found</h1>
+        <p className="mt-2 text-ink-2">{company.error}</p>
+        <Link href="/" className="mt-4 inline-block text-accent-ink underline">
+          Back to search
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-7xl px-4">
+      <div className="sticky top-0 z-30 -mx-4 border-b border-line bg-page/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-page/80">
+        <ReportHeader
+          company={company.data}
+          headline={null}
+          headlineError="not yet available"
+          onRefresh={refresh}
+          refreshing={refreshing}
+        />
+        <nav aria-label="Report sections" className="no-print -mx-1 flex gap-1 overflow-x-auto pb-2">
+          {NAV.map((n) => (
+            <a
+              key={n.id}
+              href={`#${n.id}`}
+              className="whitespace-nowrap rounded-md px-2 py-1 text-xs font-medium text-ink-2 hover:bg-surface-2"
+            >
+              {n.label}
+            </a>
+          ))}
+        </nav>
+      </div>
+
+      <div className="mt-4 space-y-4">
+        {company.error && !company.data && <MissingNote>{company.error}</MissingNote>}
+        <SectionShell
+          id="snapshot"
+          title="Snapshot"
+          subtitle="Key statistics"
+          data={company.data}
+          loading={company.loading}
+          error={company.error}
+        >
+          {company.data && <SnapshotStats company={company.data} />}
+        </SectionShell>
+        <SectionShell
+          id="chart"
+          title="Price chart"
+          data={chart.data}
+          loading={chart.loading}
+          error={chart.error}
+          skeletonHeight="h-96"
+        >
+          {chart.data && (
+            <PriceChart
+              chart={chart.data}
+              ticker={ticker.toUpperCase()}
+              overlays={{
+                high52: company.data?.stats?.high_52w?.value,
+                low52: company.data?.stats?.low_52w?.value,
+              }}
+            />
+          )}
+        </SectionShell>
+        <p className="text-xs text-muted">
+          {DISCLAIMER_SHORT} Report generated {formatDateTime(company.data?.generated_at)} · engine{" "}
+          {company.data?.engine_version} · config {company.data?.config_hash}
+        </p>
+      </div>
+    </div>
+  );
+}
