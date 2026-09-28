@@ -14,6 +14,7 @@ Fair access: ≤10 requests/second and a descriptive User-Agent with a contact e
 from __future__ import annotations
 
 import html
+import logging
 import re
 import xml.etree.ElementTree as ET
 from datetime import date, datetime
@@ -32,6 +33,8 @@ from engine.settings import get_settings
 
 DATA = "https://data.sec.gov"
 WWW = "https://www.sec.gov"
+
+log = logging.getLogger("engine.sec")
 
 
 def _d(s: str | None) -> date | None:
@@ -301,7 +304,8 @@ def parse_form4(xml_text: str, ticker: str, filing: Filing, url: str | None) -> 
     """Parse an SEC ownership document (Form 4). Returns one record per transaction row."""
     try:
         root = ET.fromstring(xml_text.encode("utf-8") if isinstance(xml_text, str) else xml_text)
-    except ET.ParseError:
+    except ET.ParseError as e:
+        log.warning("unparseable Form 4 %s for %s: %s", filing.accession, ticker, e)
         return []
     owner = root.find("reportingOwner")
     name = _txt(owner, "reportingOwnerId/rptOwnerName") or "Unknown filer"

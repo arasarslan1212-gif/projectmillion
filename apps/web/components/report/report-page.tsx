@@ -9,11 +9,15 @@ import { formatDateTime } from "@/lib/format";
 import { DISCLAIMER_SHORT } from "@/lib/legal";
 import { pushRecent } from "@/lib/recent";
 import { AnalystsSection } from "./analysts";
+import { DividendsSection } from "./dividends";
+import { EarningsSection } from "./earnings";
+import { ExplainSection, ModeToggle, VerdictCard } from "./explain";
 import { FundamentalsSection } from "./fundamentals";
 import { NewsSection } from "./news";
 import { ReportHeader } from "./header";
 import { SnapshotStats } from "./overview";
 import { OverviewSection } from "./overview-section";
+import { OwnershipSection } from "./ownership";
 import { PeersSection } from "./peers";
 import { RiskSection } from "./risk";
 import { TrustSection } from "./trust";
@@ -25,8 +29,12 @@ const NAV = [
   { id: "chart", label: "Chart" },
   { id: "trust", label: "Trust Rating" },
   { id: "valuation", label: "Price target" },
+  { id: "explain", label: "Explain" },
   { id: "analysts", label: "Analysts" },
   { id: "news", label: "News" },
+  { id: "earnings", label: "Earnings" },
+  { id: "dividends", label: "Dividends" },
+  { id: "ownership", label: "Ownership" },
   { id: "fundamentals", label: "Fundamentals" },
   { id: "risk", label: "Risk & red flags" },
   { id: "peers", label: "Peers" },
@@ -43,8 +51,12 @@ export function ReportPage({ ticker }: { ticker: string }) {
   const valuation = useSection(ticker, "valuation", version);
   const analysts = useSection(ticker, "analysts", version);
   const news = useSection(ticker, "news", version);
+  const earnings = useSection(ticker, "earnings", version);
+  const dividends = useSection(ticker, "dividends", version);
+  const ownership = useSection(ticker, "ownership", version);
   const risk = useSection(ticker, "risk", version);
   const fundamentals = useSection(ticker, "fundamentals", version);
+  const explain = useSection(ticker, "explain", version);
   const [peerOverride, setPeerOverride] = useState<string[] | null>(null);
   const peers = useSection(
     ticker,
@@ -100,7 +112,7 @@ export function ReportPage({ ticker }: { ticker: string }) {
 
   return (
     <div className="mx-auto max-w-7xl px-4">
-      <div className="sticky top-0 z-30 -mx-4 border-b border-line bg-page/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-page/80">
+      <div className="z-30 -mx-4 border-b sm:sticky sm:top-0 border-line bg-page/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-page/80">
         <ReportHeader
           company={company.data}
           headline={headline.data}
@@ -123,6 +135,7 @@ export function ReportPage({ ticker }: { ticker: string }) {
 
       <div className="mt-4 space-y-4">
         {company.error && !company.data && <MissingNote>{company.error}</MissingNote>}
+        {company.data && <VerdictCard e={explain.data} loading={explain.loading} error={explain.error} />}
         <SectionShell
           id="snapshot"
           title="Snapshot"
@@ -131,7 +144,9 @@ export function ReportPage({ ticker }: { ticker: string }) {
           loading={company.loading}
           error={company.error}
         >
-          {company.data && <SnapshotStats company={company.data} />}
+          {company.data && (
+            <SnapshotStats company={company.data} nextEarnings={earnings.data?.metrics?.next_date ?? null} />
+          )}
         </SectionShell>
         <SectionShell
           id="overview"
@@ -186,6 +201,18 @@ export function ReportPage({ ticker }: { ticker: string }) {
           )}
         </SectionShell>
         <SectionShell
+          id="explain"
+          title="Explain: how the app reached this view"
+          subtitle="Every number below comes from the report's facts; hover or tap a sentence to see which"
+          data={explain.data}
+          loading={explain.loading}
+          error={explain.error}
+          skeletonHeight="h-96"
+          actions={<ModeToggle />}
+        >
+          {explain.data && <ExplainSection e={explain.data} />}
+        </SectionShell>
+        <SectionShell
           id="analysts"
           title="Wall Street analysts: who to trust"
           subtitle="Analysts' own targets and ratings, scored on how their past calls worked out"
@@ -206,6 +233,34 @@ export function ReportPage({ ticker }: { ticker: string }) {
           skeletonHeight="h-96"
         >
           {news.data && <NewsSection n={news.data} />}
+        </SectionShell>
+        <SectionShell
+          id="earnings"
+          title="Earnings"
+          subtitle="Results against estimates, how the stock reacted, and what comes next"
+          data={earnings.data}
+          loading={earnings.loading}
+          error={earnings.error}
+        >
+          {earnings.data && <EarningsSection e={earnings.data} />}
+        </SectionShell>
+        <SectionShell
+          id="dividends"
+          title="Dividends"
+          data={dividends.data}
+          loading={dividends.loading}
+          error={dividends.error}
+        >
+          {dividends.data && <DividendsSection d={dividends.data} />}
+        </SectionShell>
+        <SectionShell
+          id="ownership"
+          title="Ownership, insiders and short interest"
+          data={ownership.data}
+          loading={ownership.loading}
+          error={ownership.error}
+        >
+          {ownership.data && <OwnershipSection o={ownership.data} />}
         </SectionShell>
         <SectionShell
           id="fundamentals"

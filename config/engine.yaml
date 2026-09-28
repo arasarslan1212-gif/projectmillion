@@ -389,6 +389,35 @@ analysts:
                 Citi, Wells Fargo, UBS, Barclays, Deutsche Bank]
 
 
+
+# ---------------------------------------------------------------------------------------
+# Earnings, dividends, ownership.
+earnings:
+  quarters: 12                    # history shown
+  drift_days: 20                  # post-earnings drift window (trading days)
+  revision_windows: [7, 30, 60, 90]
+dividends:
+  # Dividend safety score (0–100): weighted components, each scored linearly between anchors
+  # [value scoring 0, value scoring 100]. REITs use FFO instead of net income for the earnings payout.
+  safety_weights: {earnings_payout: 0.30, fcf_payout: 0.30, leverage: 0.20, stability: 0.10, streak: 0.10}
+  anchors:
+    earnings_payout: [1.0, 0.4]
+    fcf_payout: [1.2, 0.5]
+    leverage: [5.0, 1.0]          # net debt ÷ EBITDA (not used for banks and insurers)
+    stability: [0.5, 1.0]         # share of the last 8 years with positive EPS
+    streak: [0, 10]               # consecutive years of dividend increases
+  # Capital-intensive profiles fund capex with debt by design: judge utilities on earnings payout rather than
+  # free cash flow, and use leverage anchors that match their normal capital structure.
+  profile_anchors:
+    utility: {leverage: [7.0, 3.5], earnings_payout: [1.0, 0.6]}
+    reit: {leverage: [8.0, 4.0], earnings_payout: [1.05, 0.65], fcf_payout: [1.3, 0.8]}
+  profile_skip:
+    utility: [fcf_payout]
+  levels: [[70, "Safe"], [45, "Moderate"], [0, "At risk"]]
+ownership:
+  insider_lookback_months: 24
+  cluster_window_days: 30         # cluster buying: at least this many distinct insiders buying
+  cluster_min_insiders: 3         #   on the open market within the window
 # ---------------------------------------------------------------------------------------
 # News and sentiment. Stories are clustered, classified (LLM, else keyword rules), and aggregated.
 news:
@@ -435,7 +464,7 @@ news:
 # LLM_REPORT_TOKEN_BUDGET. Prices (USD per million tokens, input/output) are used for cost logs only.
 llm:
   news_max_tokens: 6000
-  prompt_versions: {news_batch: news-v1, news_item: news-v1, news_digest: digest-v1}
+  prompt_versions: {news_batch: news-v1, news_item: news-v1, news_digest: digest-v1, explain_narrative: explain-v1}
   pricing_per_mtok:
     default: [4.0, 20.0]
     claude-haiku-4-5-20251001: [1.0, 5.0]

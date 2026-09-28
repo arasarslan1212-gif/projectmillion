@@ -10,6 +10,7 @@ import { cn } from "@/lib/cn";
 import { direction, formatDate, formatMetric, formatValue, gradeColor } from "@/lib/format";
 import { DISCLAIMER_SHORT } from "@/lib/legal";
 import { toggleWatch, useWatchlist } from "@/lib/recent";
+import { ModeToggle } from "./explain";
 import type { AnySection } from "@/lib/types";
 
 function HeadlineBadge({
@@ -118,16 +119,19 @@ export function ReportHeader({
           </span>
           <span className="text-xs text-muted">{price.note ?? `as of ${formatDate(price.as_of)}`}</span>
         </div>
-        <div className="no-print ml-auto flex gap-1.5">
+        <div className="no-print ml-auto flex flex-wrap items-center gap-1.5">
+          <ModeToggle />
           <Button onClick={() => ticker && toggleWatch(ticker)} aria-pressed={watched}>
             {watched ? <BookmarkCheck className="size-3.5" /> : <Bookmark className="size-3.5" />}
             {watched ? "Watching" : "Watch"}
           </Button>
           <Button onClick={onRefresh} disabled={refreshing} aria-label="Refresh data">
-            <RefreshCw className={cn("size-3.5", refreshing && "animate-spin")} /> Refresh
+            <RefreshCw className={cn("size-3.5", refreshing && "animate-spin")} />
+            <span className="hidden sm:inline">Refresh</span>
           </Button>
           <Button onClick={() => window.print()} aria-label="Export PDF via print dialog">
-            <Printer className="size-3.5" /> PDF
+            <Printer className="size-3.5" />
+            <span className="hidden sm:inline">PDF</span>
           </Button>
         </div>
       </div>

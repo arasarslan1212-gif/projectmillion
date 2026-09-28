@@ -458,3 +458,118 @@ news_sentiment_7d:
 news_stories_30d:
   label: Stories (30 days)
   definition: Number of distinct stories (after merging duplicates across outlets) with non-zero weight in the last 30 days.
+
+# ---- Earnings (M7) ----
+eps_beat_rate:
+  label: EPS beat rate
+  definition: Share of the last 12 reported quarters in which adjusted EPS exceeded the consensus estimate.
+  formula: quarters with actual > estimate ÷ quarters with both
+  plain: How often the company beat what analysts expected.
+revenue_beat_rate:
+  label: Revenue beat rate
+  definition: Share of the last 12 reported quarters in which revenue exceeded the consensus estimate.
+avg_eps_surprise:
+  label: Typical EPS surprise
+  definition: Median of (actual − estimate) ÷ |estimate| over the last 12 reported quarters.
+  formula: median((actual − estimate) ÷ |estimate|)
+avg_earnings_move:
+  label: Average move after earnings
+  definition: >-
+    Mean absolute total return of the stock over the first session that could react to the report (the report day
+    for before-open reports, the next session for after-close reports; both when the timing is not reported).
+  plain: How much the stock usually jumps, up or down, when results come out.
+post_earnings_drift_beats:
+  label: Drift after beats
+  definition: >-
+    Average excess return over the market in the 20 sessions after reports that beat the EPS estimate. Persistent
+    positive drift after beats is a known market anomaly; small samples are noisy.
+  formula: mean(stock return − market return) over 20 sessions after beats
+post_earnings_drift_misses:
+  label: Drift after misses
+  definition: Average excess return over the market in the 20 sessions after reports that missed the EPS estimate.
+next_earnings_date:
+  label: Next earnings date
+  definition: The next scheduled earnings report date from the earnings calendar. Not available in point-in-time mode.
+
+# ---- Dividends (M7) ----
+dps_ttm:
+  label: Dividends per share (trailing 12 months)
+  definition: Sum of dividends per share with ex-dividend dates in the last 12 months, in today's share units.
+dividend_yield_5y_avg:
+  label: 5-year average yield
+  definition: Mean of month-end trailing-12-month dividend yields over the last five years.
+dividend_yield_percentile:
+  label: Yield vs. own history
+  definition: >-
+    Share of month-ends in the last five years with a yield at or below today's. High values mean the stock yields
+    more than usual (cheaper on this measure, or the market doubts the dividend).
+sector_dividend_yield:
+  label: Peer median yield
+  definition: Median of peers' calendar-year dividends paid (SEC frames) ÷ current market cap, among dividend-paying peers.
+payout_ratio_ffo:
+  label: Payout ratio (FFO)
+  definition: For REITs, trailing-12-month dividends paid ÷ funds from operations (net income + depreciation − gains on property sales).
+  formula: dividends paid ÷ FFO
+payout_ratio_fcf:
+  label: Payout ratio (free cash flow)
+  definition: Trailing-12-month dividends paid ÷ free cash flow (operating cash flow − capex).
+  formula: dividends paid ÷ FCF
+  plain: How much of the cash the business generates goes out as dividends.
+dividend_growth_streak:
+  label: Consecutive years of increases
+  definition: Number of consecutive complete calendar years in which dividends per share rose.
+dividend_cagr_5y:
+  label: Dividend growth (5-year CAGR)
+  definition: Compound annual growth of calendar-year dividends per share over the last five complete years.
+  formula: (DPS_last ÷ DPS_5y_ago)^(1/5) − 1
+dividend_cagr_10y:
+  label: Dividend growth (10-year CAGR)
+  definition: Compound annual growth of calendar-year dividends per share over the last ten complete years.
+dividend_safety:
+  label: Dividend safety score
+  definition: >-
+    0–100 composite of earnings payout, free-cash-flow payout, leverage (net debt ÷ EBITDA), earnings stability and
+    the growth streak, each scored between configured anchors, with profile-specific anchors for utilities and REITs.
+    70+ Safe, 45–70 Moderate, below 45 At risk. A model score, not a forecast.
+  plain: How comfortably the company can keep paying its dividend.
+
+# ---- Ownership (M7) ----
+insider_buying_6m:
+  label: Insider open-market purchases (6 months)
+  definition: Dollar value of Form 4 open-market purchases (code P) by officers, directors and 10% owners in the last 6 months.
+  plain: Insiders buying with their own money, the strongest insider signal.
+insider_selling_6m:
+  label: Insider open-market sales (6 months)
+  definition: >-
+    Dollar value of Form 4 open-market sales (code S) in the last 6 months. Sales under pre-arranged 10b5-1 plans are
+    a weak signal; the note shows their share.
+insider_clusters:
+  label: Insider cluster buys (24 months)
+  definition: Windows of 30 days in which at least 3 different insiders bought shares on the open market.
+share_count_change_3y:
+  label: Share count change (3-year CAGR)
+  definition: Compound annual change in diluted weighted-average shares over three fiscal years. Negative means net buybacks.
+buyback_yield:
+  label: Buyback yield (trailing 12 months)
+  definition: Cash spent on share repurchases in the last 12 months ÷ current market cap.
+buyback_return:
+  label: Value of past buybacks vs. cash spent
+  definition: >-
+    For each of the last six fiscal years, repurchase cash is converted to shares at that year's average closing
+    price; the result compares those shares' value today with the cash spent. Positive means buybacks were made
+    below today's price.
+  formula: Σ (cashᵧ ÷ avg priceᵧ) × price today ÷ Σ cashᵧ − 1
+payout_ratio:
+  label: Payout ratio (earnings)
+  definition: Trailing-12-month dividends paid ÷ net income.
+  formula: dividends paid ÷ net income
+  plain: How much of the profit is paid out as dividends.
+short_interest_pct_float:
+  label: Short interest (% of float)
+  definition: >-
+    Shares sold short at the latest FINRA settlement date (published about 8 business days later, so point-in-time
+    mode waits for it) ÷ free-float shares (shares outstanding when the float is unavailable).
+  plain: How many investors are betting the price will fall.
+days_to_cover:
+  label: Days to cover
+  definition: Short interest ÷ average daily volume. How many days of normal trading it would take shorts to buy back.

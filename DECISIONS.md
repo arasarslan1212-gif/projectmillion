@@ -130,3 +130,54 @@ The synthetic market contains an injection headline and an injection teaser for 
 
 ### D-036: The digest's numbers are checked
 The 7- and 30-day digests are always computed as templates from structured story data. With the LLM on, FAST_MODEL rewrites them from a facts list with ids. Every number in the text must match a fact at the precision written (the number validator, shared with M7's narratives). On failure the text is regenerated once, then the template is used and the failure logged.
+
+## M7: Earnings, dividends, ownership and Explain
+
+### D-037: Earnings reactions are measured from the right close
+A report's timing decides which session first reacts:
+- before the open: from the previous close to the report day's close;
+- after the close: from the report day's close to the next session's close;
+- unknown timing: from the previous close through the next session, so both cases are covered.
+
+Moves are also shown net of the market ETF. Post-earnings drift is the excess return over the 20 sessions after the first reacting session, averaged separately for beats and misses. Management guidance and the options-implied move have no licensed source in this build, so the section says "not available" rather than estimating them.
+
+### D-038: Dividend safety is a scored, profile-aware composite
+The 0–100 safety score weights earnings payout (30%), free-cash-flow payout (30%), leverage (20%), earnings stability (10%) and the increase streak (10%). Each component is scored linearly between configured anchors. Profiles that fund capex with debt by design get their own anchors:
+- utilities are judged on earnings payout, and FCF payout is skipped;
+- REITs use FFO in place of net income, with looser leverage anchors.
+
+The section shows which components were skipped and which anchors applied. Companies with no dividend in two years get `not_applicable`, not a zero.
+
+### D-039: Ownership signals and their timing
+- **Insider cluster:** at least 3 distinct insiders buying on the open market within 30 days. Sales under 10b5-1 plans are counted separately from discretionary sales.
+- **Buyback track record:** each fiscal year's repurchase spending is converted to shares at that year's average close and compared with those shares' value today.
+- **Short interest:** used only once published. FINRA data becomes public about 12 days after settlement, so point-in-time reports ignore anything newer. It is divided by the float when the float is known, else by shares outstanding, and the label says which.
+
+### D-040: The facts JSON is the only source of numbers for narratives
+Explain builds a flat list of facts from the other sections' outputs. Each fact has an id (`val.p50`, `trust.pillar.growth`, `trigger.margin.threshold`, …), a label, the engine's exact value, a unit, a group, a source, an as-of date and a display string. A narrative sentence carries the ids it relies on. The validator accepts a number only if it matches one of the *cited* facts at the precision written, or appears inside a cited text fact (a label or note quoted verbatim). A small whitelist covers structural numbers ("0–100", "12-month", "−1 to +1"). Citing is therefore both the traceability link in the UI and the scope of the fact check.
+
+### D-041: Templates always exist; the LLM rewrites them part by part
+Every part (Verdict, view, trust path, target path, pricing in, drivers, case against, confidence) is always computed from templates in Plain and Analyst modes, and the templates pass the same validator. A test enforces this for every synthetic ticker, and the section logs any template failure as an error.
+
+With an API key, REASONING_MODEL (adaptive thinking) receives the facts and templates and returns sentences with fact ids. Each sentence is checked: cited ids exist, numbers are supported, and there are no directives or links. Structure is checked too: the Verdict has 3–4 sentences and the view exactly 3. Only the failed parts are regenerated, once, with the problems listed. Parts that fail again fall back to their templates individually, so one bad paragraph does not discard the rest. The section reports `template`, `llm` or `mixed`, which parts were regenerated or fell back, and the call cost.
+
+### D-042: "What would change the view" is computed, never written
+Triggers are thresholds from code:
+- a close outside P10/P90 before the horizon;
+- operating margin below the 12-quarter mean minus 2σ for two quarters (not for banks and insurers);
+- year-over-year revenue growth below its mean minus 2σ, capped at zero for growing companies;
+- net debt ÷ EBITDA above max(3×, current + 1.5×);
+- the trusted analyst consensus crossing today's price;
+- 30-day news sentiment crossing −0.3 (or back above +0.1).
+
+Each trigger names its effect on the pillars or the target. The LLM may rephrase the text but not set a threshold.
+
+### D-043: The case against is a steelman built from the same facts
+The app's direction is the sign of the implied return to P50. The case against collects the strongest facts for the other outcome:
+- for a bearish view: pillars scoring ≥ 65, a positive trusted-analyst upside, news sentiment ≥ 0.1, an EPS beat rate ≥ 75%, insider cluster buys, and the model's own probability of a higher price when it exceeds 30%;
+- for a bullish view: pillars ≤ 45, red flags, a negative trusted consensus, negative news, and a high chance of a 20% drawdown.
+
+If nothing qualifies, it says plainly that the model's inputs could be wrong.
+
+### D-044: One reading mode for the whole app
+Plain/Analyst is a single setting stored in the browser. The toggle is in the report header and the Explain section, and both stay in sync across tabs. It switches the Verdict and every Explain part, and in Plain mode metric tooltips show the plain-English definition (where one is written) instead of the formula. The Verdict card sits directly below the sticky header rather than inside it, so four sentences never cover the page. On phones the header no longer sticks: it would take half the screen.

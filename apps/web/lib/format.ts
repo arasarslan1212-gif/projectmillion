@@ -17,6 +17,16 @@ export function formatValue(
   unit: Unit,
   opts: { digits?: number; signed?: boolean } = {},
 ): string {
+  const out = formatRaw(value, unit, opts);
+  // a value that rounds to zero carries no sign ("-0.0%" → "0.0%")
+  return /^[+-]/.test(out) && !/[1-9]/.test(out) ? out.slice(1) : out;
+}
+
+function formatRaw(
+  value: number | string | null | undefined,
+  unit: Unit,
+  opts: { digits?: number; signed?: boolean },
+): string {
   if (value === null || value === undefined) return DASH;
   if (typeof value === "string") {
     if (unit === "date") return formatDate(value);

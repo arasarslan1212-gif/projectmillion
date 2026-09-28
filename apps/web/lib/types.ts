@@ -40,7 +40,7 @@ export interface SourceMeta {
 
 export interface SectionBase {
   section: string;
-  status: "ok" | "missing" | "error" | "partial";
+  status: "ok" | "missing" | "error" | "partial" | "not_applicable";
   reason: string | null;
   sources: SourceMeta[];
   ticker?: string;

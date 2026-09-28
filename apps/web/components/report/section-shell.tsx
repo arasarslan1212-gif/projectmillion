@@ -110,6 +110,7 @@ export function SectionShell({
             )}
             {data && data.status === "error" && <MissingNote>{data.reason}</MissingNote>}
             {data && data.status === "missing" && <MissingNote>Insufficient data: {data.reason}</MissingNote>}
+            {data && data.status === "not_applicable" && <p className="text-sm text-ink-2">{data.reason}</p>}
             {data && (data.status === "ok" || data.status === "partial") && children}
             {data && data.reason && data.status === "partial" && (
               <p className="mt-3 text-xs text-muted">{data.reason}</p>

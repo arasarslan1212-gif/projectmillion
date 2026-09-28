@@ -9,9 +9,11 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import zlib
 from datetime import date, datetime, timedelta
 from functools import lru_cache
 from urllib.parse import parse_qs, urlsplit
+from xml.sax.saxutils import escape as xml_escape
 
 import httpx
 import numpy as np
@@ -516,16 +518,16 @@ class SyntheticServer:
       <ownershipNature><directOrIndirectOwnership><value>D</value></directOrIndirectOwnership></ownershipNature>
     </nonDerivativeTransaction>""")
         aff = "" if plan is None else f"<aff10b5One>{1 if plan else 0}</aff10b5One>"
-        title = f"<officerTitle>{t0['title']}</officerTitle>" if t0["title"] else ""
+        title = f"<officerTitle>{xml_escape(t0['title'])}</officerTitle>" if t0["title"] else ""
         return f"""<?xml version="1.0"?>
 <ownershipDocument>
   <schemaVersion>X0508</schemaVersion>
   <documentType>4</documentType>
   <periodOfReport>{t0["date"].isoformat()}</periodOfReport>
   {aff}
-  <issuer><issuerCik>{co.spec.cik:010d}</issuerCik><issuerName>{co.spec.name}</issuerName><issuerTradingSymbol>{co.ticker}</issuerTradingSymbol></issuer>
+  <issuer><issuerCik>{co.spec.cik:010d}</issuerCik><issuerName>{xml_escape(co.spec.name)}</issuerName><issuerTradingSymbol>{co.ticker}</issuerTradingSymbol></issuer>
   <reportingOwner>
-    <reportingOwnerId><rptOwnerCik>{abs(hash(t0["name"])) % 10**10:010d}</rptOwnerCik><rptOwnerName>{t0["name"]}</rptOwnerName></reportingOwnerId>
+    <reportingOwnerId><rptOwnerCik>{zlib.crc32(t0["name"].encode()) % 10**10:010d}</rptOwnerCik><rptOwnerName>{xml_escape(t0["name"])}</rptOwnerName></reportingOwnerId>
     <reportingOwnerRelationship><isDirector>{1 if t0["director"] else 0}</isDirector><isOfficer>{1 if t0["officer"] else 0}</isOfficer><isTenPercentOwner>{1 if t0["title"] == "10% owner" else 0}</isTenPercentOwner>{title}</reportingOwnerRelationship>
   </reportingOwner>
   <nonDerivativeTable>{"".join(rows)}

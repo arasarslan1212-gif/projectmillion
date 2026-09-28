@@ -4,18 +4,25 @@ import { Info } from "lucide-react";
 import { useDefinitions } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { formatDate, formatMetric } from "@/lib/format";
+import { useReadingMode } from "@/lib/mode";
 import type { Metric } from "@/lib/types";
 import { Tip } from "./tooltip";
 
 /** Tooltip body: definition, formula, source and as-of date for one metric. */
 export function MetricTipBody({ m }: { m: Metric }) {
   const defs = useDefinitions();
+  const [mode] = useReadingMode();
   const d = defs[m.def] ?? defs[m.id];
+  const plain = mode === "plain" && d?.plain;
   return (
     <div className="space-y-1.5">
       <div className="font-semibold">{d?.label ?? m.label}</div>
-      {d?.definition && <p className="text-ink-2">{d.definition}</p>}
-      {d?.formula && (
+      {plain ? (
+        <p className="text-ink-2">{d.plain}</p>
+      ) : (
+        d?.definition && <p className="text-ink-2">{d.definition}</p>
+      )}
+      {!plain && d?.formula && (
         <p>
           <span className="text-muted">Formula: </span>
           <span className="font-mono text-[11px]">{d.formula}</span>

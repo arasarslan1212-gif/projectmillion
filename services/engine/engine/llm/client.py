@@ -158,6 +158,7 @@ def structured_call[T: BaseModel](
     report_id: str | None,
     budget: Budget | None,
     check=None,
+    extra: dict | None = None,
 ) -> tuple[T | None, CallInfo]:
     """One validated structured call. `check(parsed) -> list[str]` adds semantic validation (retried once)."""
     info = CallInfo(model=model, purpose=purpose)
@@ -196,6 +197,7 @@ def structured_call[T: BaseModel](
                     system=system,
                     messages=[{"role": "user", "content": prompt}],
                     output_format=output,
+                    **(extra or {}),
                 )
             except ValidationError as e:  # the SDK validates the JSON against the schema
                 problems = [f"output did not match the schema: {e.errors()[0]['msg']}"]
@@ -239,6 +241,13 @@ def structured_call[T: BaseModel](
     elif info.error:
         log.warning("LLM %s call for %s returned no result: %s", purpose, ticker, info.error)
     return result, info
+
+
+def log_validation(ticker: str, report_id: str | None, model: str, purpose: str, failures: int) -> None:
+    """A zero-cost row recording narrative validation failures (for the per-report cost/quality log)."""
+    log_cost(
+        ticker, report_id, CallInfo(model=model, purpose=purpose, cached=True), validator_failures=failures
+    )
 
 
 def report_budget(ctx) -> Budget:

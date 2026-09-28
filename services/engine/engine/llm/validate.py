@@ -77,8 +77,8 @@ def allowed_values(facts: list[dict]) -> list[tuple[float, str]]:
         v = f.get("value")
         if isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v):
             vals.append((float(v), f.get("unit", "plain")))
-        for k in ("label", "text", "headline", "date", "period"):
-            if isinstance(f.get(k), str):
+        for k in ("label", "text", "headline", "date", "period", "value", "display"):
+            if isinstance(f.get(k), str) and (k != "display" or not isinstance(v, (int, float))):
                 for n in extract_numbers(f[k]):
                     vals.append((n.value / 100, "pct") if n.kind == "pct" else (n.value, "plain"))
     return vals

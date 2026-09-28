@@ -24,6 +24,12 @@ describe("formatValue", () => {
     expect(formatValue(0.385, "prob")).toBe("38.5%");
     expect(formatValue(0.99975, "prob")).toBe(">99.9%");
   });
+  it("drops the sign when a value rounds to zero", () => {
+    expect(formatValue(-0.0004, "pct", { signed: true })).toBe("0.0%");
+    expect(formatValue(0.0004, "pct", { signed: true })).toBe("0.0%");
+    expect(formatValue(-0.004, "usd_per_share")).toBe("$0.00");
+    expect(formatValue(-0.05, "pct")).toBe("-5.0%");
+  });
   it("formats multiples and scores", () => {
     expect(formatValue(32.18, "x")).toBe("32.2×");
     expect(formatValue(72.6, "score")).toBe("73");

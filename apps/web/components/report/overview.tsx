@@ -1,9 +1,15 @@
 "use client";
 
 import { MetricCell } from "@/components/ui/metric";
-import type { AnySection } from "@/lib/types";
+import type { AnySection, Metric } from "@/lib/types";
 
-export function SnapshotStats({ company }: { company: AnySection }) {
+export function SnapshotStats({
+  company,
+  nextEarnings,
+}: {
+  company: AnySection;
+  nextEarnings?: Metric | null;
+}) {
   const s = company.stats;
   const cells = [
     s.market_cap,
@@ -18,10 +24,11 @@ export function SnapshotStats({ company }: { company: AnySection }) {
     s.avg_volume,
     s.volume_ratio,
     s.shares_outstanding,
+    nextEarnings ?? null,
   ];
   return (
     <div>
-      <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3 lg:grid-cols-7">
         {cells.map((m) => (m ? <MetricCell key={m.id} m={m} /> : null))}
       </div>
       <RangeBar low={s.low_52w?.value} high={s.high_52w?.value} price={company.price.price.value} />
