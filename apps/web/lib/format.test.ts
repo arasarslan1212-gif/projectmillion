@@ -16,6 +16,14 @@ describe("formatValue", () => {
     expect(formatValue(0.05, "pct", { signed: true })).toBe("+5.0%");
     expect(formatValue(-0.018, "pct", { signed: true })).toBe("-1.8%");
   });
+  it("never shows a model probability as certain", () => {
+    expect(formatValue(0.999, "prob", { digits: 0 })).toBe(">99%");
+    expect(formatValue(1, "prob", { digits: 0 })).toBe(">99%");
+    expect(formatValue(0.001, "prob", { digits: 0 })).toBe("<1%");
+    expect(formatValue(0, "prob", { digits: 0 })).toBe("<1%");
+    expect(formatValue(0.385, "prob")).toBe("38.5%");
+    expect(formatValue(0.99975, "prob")).toBe(">99.9%");
+  });
   it("formats multiples and scores", () => {
     expect(formatValue(32.18, "x")).toBe("32.2×");
     expect(formatValue(72.6, "score")).toBe("73");

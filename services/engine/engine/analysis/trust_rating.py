@@ -254,8 +254,8 @@ def collect_values(
         )
     val = _safe_section(ctx, "valuation")
     up = None
-    if val and val.get("intrinsic", {}).get("value") and ctx.last_price:
-        up = val["intrinsic"]["value"] / ctx.last_price - 1
+    if val and val.get("intrinsic") and ctx.last_price:
+        up = val["intrinsic"] / ctx.last_price - 1
     vals["dcf_upside"] = (up, "app valuation", None)
     vals["model_upside"] = (up, "app valuation", None)
     if val and val.get("wacc", {}).get("value") is not None and ttm.get("roic") is not None:

@@ -10,6 +10,7 @@ from datetime import date
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+from pydantic import BaseModel, Field
 
 from engine import clock
 from engine.config import ENGINE_VERSION, get_config, load_metric_defs
@@ -113,6 +114,51 @@ def refresh(ticker: str) -> dict:
         data.invalidate(prefix)
     builder.contexts.drop(t)
     return {"status": "refreshed", "ticker": t}
+
+
+class DcfOverrides(BaseModel):
+    growth1: float | None = Field(None, ge=-0.5, le=1.5)
+    margin_target: float | None = Field(None, ge=-1.0, le=0.9)
+    wacc: float | None = Field(None, ge=0.02, le=0.3)
+    terminal_growth: float | None = Field(None, ge=-0.02, le=0.05)
+    capex_pct: float | None = Field(None, ge=0.0, le=1.0)
+
+
+@app.post("/api/valuation/{ticker}/dcf")
+def dcf_what_if(ticker: str, body: DcfOverrides) -> dict:
+    """Recompute the DCF with user-chosen assumptions (the interactive sliders). Deterministic and fast."""
+    from dataclasses import replace
+
+    from engine.report.sections.valuation import compute
+    from engine.valuation.dcf import DcfInputs, run_dcf
+
+    try:
+        ctx = builder.contexts.get(ticker, None, False)
+        v = compute(ctx)
+    except TickerNotFound:
+        raise _not_found(ticker) from None
+    dcf = (v or {}).get("dcf")
+    if not dcf:
+        raise HTTPException(422, detail="No DCF is available for this company (profile or data).")
+    base = DcfInputs(**dcf["inputs"])
+    changes = {k: val for k, val in body.model_dump().items() if val is not None}
+    inp = replace(base, **changes)
+    if inp.wacc - inp.terminal_growth < 0.005:
+        raise HTTPException(422, detail="WACC must exceed terminal growth by at least 0.5 percentage points.")
+    r = run_dcf(inp)
+    price = v["price"]
+    return {
+        "per_share": r.per_share,
+        "upside": (r.per_share / price - 1) if r.per_share is not None else None,
+        "terminal_share": r.terminal_share,
+        "enterprise_value": r.enterprise_value,
+        "table": r.table,
+        "inputs": inp.to_dict(),
+        "base_per_share": dcf["per_share"],
+        "price": price,
+        "notes": r.notes,
+        "disclaimer": "What-if calculation with your assumptions; not the app's estimate and not investment advice.",
+    }
 
 
 @app.get("/api/meta/definitions")

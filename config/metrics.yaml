@@ -290,3 +290,91 @@ corr_sector:
 avg_dollar_volume:
   label: Average daily dollar volume
   definition: Average of price × volume over the last 63 sessions; a liquidity measure.
+
+# ---- Valuation (M4) ----
+target_p50:
+  label: App 12-month target (P50)
+  definition: >-
+    Median of the app's 12-month price distribution. Each valuation method's long-term value is converted to a
+    12-month figure by assuming the price earns its cost of equity (net of dividend yield) and closes a fixed share
+    of the gap to that value within a year; the method targets are then blended in log space with weights
+    proportional to profile weight × applicability × measured accuracy.
+  formula: "exp(Σ wₘ · [ln P₀ + ln(1 + kₑ − dy) + λ · ln(Vₘ ÷ P₀)])"
+  plain: The middle of the range where the model thinks the price could be in a year. A model estimate, not a promise.
+  example: "Price $100, intrinsic value $130, cost of equity 9%, λ = 0.4: 100 × 1.09 × 1.3^0.4 ≈ $120."
+target_p10:
+  label: App 12-month target (P10)
+  definition: >-
+    10th percentile of the app's 12-month lognormal distribution: the model gives a 10% chance of the price
+    finishing below this level.
+  formula: "P50 × exp(−1.2816 × σ_total)"
+  plain: The low end of the model's 80% range.
+target_p90:
+  label: App 12-month target (P90)
+  definition: >-
+    90th percentile of the app's 12-month lognormal distribution: the model gives a 10% chance of the price
+    finishing above this level.
+  formula: "P50 × exp(1.2816 × σ_total)"
+  plain: The high end of the model's 80% range.
+implied_return:
+  label: Implied return to P50
+  definition: Percentage difference between the app's median 12-month target and today's price (excludes dividends).
+  formula: P50 ÷ price − 1
+  plain: How far the model's middle estimate is from today's price.
+expected_return:
+  label: Expected return (mean)
+  definition: >-
+    Mean of the lognormal 12-month distribution relative to today's price. Higher than the median return because
+    a lognormal distribution is skewed to the right.
+  formula: "P50 × exp(σ_total² ÷ 2) ÷ price − 1"
+  plain: The average outcome across all the model's scenarios, which is pulled up a little by the big-win cases.
+prob_up:
+  label: Probability price is higher in 12 months
+  definition: >-
+    Model probability that the price in 12 months exceeds today's price, from the lognormal distribution. Calibrated
+    against realized outcomes once the track record has enough history.
+  formula: "Φ(ln(P50 ÷ price) ÷ σ_total)"
+  plain: The model's odds that the stock is up a year from now. 50% means a coin flip.
+prob_drawdown_20:
+  label: Probability of a ≥20% drawdown
+  definition: >-
+    Share of simulated daily price paths (market volatility, drift toward the P50) that fall at least 20% below their
+    running peak at some point during the next 12 months, even if they recover by the end.
+  formula: "share of paths with min(Pₜ ÷ max₍ₛ≤ₜ₎ Pₛ) ≤ 0.8"
+  plain: The chance of a painful 20% drop along the way, based on how much this stock usually moves.
+intrinsic_value:
+  label: Intrinsic value (long-term)
+  definition: >-
+    Log-weighted blend of the valuation methods' per-share values (DCF, relative multiples, sector models). This is a
+    long-term fair-value estimate, not a 12-month target; prices can stay away from it for years.
+  formula: "exp(Σ wₘ · ln Vₘ)"
+  plain: What the model thinks the business is worth per share over the long run.
+dcf_value:
+  label: DCF value per share
+  definition: >-
+    Free cash flow to the firm projected for 10 years (growth fading to the terminal rate, margin converging to a
+    target), discounted at WACC with mid-year convention; terminal value uses reinvestment = g ÷ (WACC + spread).
+    Stock-based compensation is treated as a real expense. Equity = EV − debt + cash − minorities − pension deficit.
+  formula: "(Σ FCFFₜ ÷ (1+WACC)^(t−0.5) + TV ÷ (1+WACC)^10 − net debt − minorities − pension) ÷ diluted shares"
+  plain: What the company's future cash flows are worth today, per share.
+wacc:
+  label: WACC
+  definition: >-
+    Weighted average cost of capital: the blended return required by shareholders and lenders. Cost of equity from
+    CAPM (FRED 10-year Treasury + Blume-adjusted beta × equity risk premium); cost of debt from interest expense ÷
+    average debt, bounded; book debt weight as a proxy for market value.
+  formula: "E/(D+E) × kₑ + D/(D+E) × k_d × (1 − t)"
+  plain: The yearly return investors and lenders expect for funding this company. Higher means future cash is worth less today.
+cost_of_equity:
+  label: Cost of equity
+  definition: Return shareholders require, from the capital asset pricing model with a Blume-adjusted beta.
+  formula: "risk-free + β_adj × equity risk premium; β_adj = 0.67 × β_raw + 0.33"
+  plain: The yearly return shareholders expect for owning this stock given how much it moves with the market.
+confidence:
+  label: Confidence
+  definition: >-
+    0–100 score for how much to trust the app's target: agreement between methods, data completeness,
+    predictability of results, volatility, analyst dispersion and past calibration for similar stocks, weighted as
+    in the engine config and capped for some profiles (pre-revenue biotech, unprofitable growth).
+  formula: "Σ wᵢ × componentᵢ, capped by profile; High ≥ 70, Medium ≥ 40, Low < 40"
+  plain: How sure the model is. Low confidence means a wide range and a target you should lean on less.

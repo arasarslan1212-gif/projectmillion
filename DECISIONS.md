@@ -67,3 +67,12 @@ Altman Z, Piotroski F and Beneish M are scored against anchors derived from thei
 
 ### D-019: Red flags cap pillars and deduct points, with a cap on the total deduction
 A triggered red flag caps its pillar (e.g. going-concern language caps Financial health at 20) and deducts a documented number of points from the overall rating. Total deductions are capped at 20 points, so the pillar evidence still dominates. Every check lists whether it fired, passed or could not run, so "no flags" is never confused with "not checked".
+
+### D-020: Peer sets are widened to a minimum size
+Peers must be in the same SIC industry and, by preference, within 10× the company's revenue. For the largest or smallest company in an industry, that band can leave only two or three peers, which makes the peer medians and the P/B–ROE regression unreliable. When fewer than `peers.min_peers` (8) filers fall inside the band, the nearest-sized same-industry filers outside it are added, and the selection note says so. You can still edit the peer set.
+
+### D-021: Today's price is the actual close; returns use adjusted closes
+Valuation compares per-share values with the last actual (split-adjusted, not dividend-adjusted) close. Dividend-adjusted closes are used only for returns (beta, volatility, drawdowns). In point-in-time mode this avoids a subtle look-ahead: back-adjusting an old price for dividends paid later would lower the historical price level using information that did not exist yet.
+
+### D-022: Monte Carlo and path simulations are seeded per ticker and date
+Every simulation uses a seed derived from the ticker, the as-of date and the configured base seed. The same report is exactly reproducible, while different tickers do not share random draws. The drawdown probability simulates daily steps, which slightly understates the continuous-time probability (a missed intraday low). The closed-form continuous-time value for the driftless case is checked in the tests.

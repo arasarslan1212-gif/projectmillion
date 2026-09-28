@@ -15,12 +15,14 @@ import { OverviewSection } from "./overview-section";
 import { PeersSection } from "./peers";
 import { RiskSection } from "./risk";
 import { TrustSection } from "./trust";
+import { ValuationSection } from "./valuation";
 
 const NAV = [
   { id: "snapshot", label: "Snapshot" },
   { id: "overview", label: "Overview" },
   { id: "chart", label: "Chart" },
   { id: "trust", label: "Trust Rating" },
+  { id: "valuation", label: "Price target" },
   { id: "fundamentals", label: "Fundamentals" },
   { id: "risk", label: "Risk & red flags" },
   { id: "peers", label: "Peers" },
@@ -34,6 +36,7 @@ export function ReportPage({ ticker }: { ticker: string }) {
   const overview = useSection(ticker, "overview", version);
   const headline = useSection(ticker, "headline", version);
   const trust = useSection(ticker, "trust", version);
+  const valuation = useSection(ticker, "valuation", version);
   const risk = useSection(ticker, "risk", version);
   const fundamentals = useSection(ticker, "fundamentals", version);
   const [peerOverride, setPeerOverride] = useState<string[] | null>(null);
@@ -129,6 +132,7 @@ export function ReportPage({ ticker }: { ticker: string }) {
               overlays={{
                 high52: company.data?.stats?.high_52w?.value,
                 low52: company.data?.stats?.low_52w?.value,
+                cone: valuation.data?.cone ?? null,
               }}
             />
           )}
@@ -143,6 +147,23 @@ export function ReportPage({ ticker }: { ticker: string }) {
           skeletonHeight="h-80"
         >
           {trust.data && <TrustSection t={trust.data} />}
+        </SectionShell>
+        <SectionShell
+          id="valuation"
+          title="Price target & valuation"
+          subtitle="The app's 12-month model estimate, its range, and the valuation methods behind it"
+          data={valuation.data}
+          loading={valuation.loading}
+          error={valuation.error}
+          skeletonHeight="h-96"
+        >
+          {valuation.data && (
+            <ValuationSection
+              v={valuation.data}
+              ticker={ticker}
+              profile={company.data?.identity?.profile ?? "general"}
+            />
+          )}
         </SectionShell>
         <SectionShell
           id="fundamentals"

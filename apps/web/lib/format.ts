@@ -37,8 +37,15 @@ export function formatValue(
       return `${sign}${value < 0 ? "-" : ""}$${s}`;
     }
     case "pct":
-    case "prob":
       return `${sign}${(value * 100).toFixed(d ?? 1)}%`;
+    case "prob": {
+      // A model probability is never shown as certain: round-trips to 0% or 100% become "<" / ">".
+      const digits = d ?? 1;
+      const edge = 0.5 * 10 ** -(digits + 2);
+      if (value >= 1 - edge) return `>${(100 - 10 ** -digits).toFixed(digits)}%`;
+      if (value < edge) return `<${(10 ** -digits).toFixed(digits)}%`;
+      return `${sign}${(value * 100).toFixed(digits)}%`;
+    }
     case "pct_points":
       return `${sign}${value.toFixed(d ?? 1)} pp`;
     case "x":

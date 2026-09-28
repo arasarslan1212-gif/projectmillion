@@ -216,7 +216,9 @@ def select_peers(
         return provider_peers[:max_peers], "provider peer list"
     rev = ctx.fin.ttm.get("revenue")
     band = float(ctx.cfg.get("peers.size_band", 10.0))
+    min_peers = int(ctx.cfg.get("peers.min_peers", 8))
     cands = [r for r in universe.rows if r.ticker and r.cik != ctx.cik and r.values.get("revenue")]
+    widened = False
     if rev and rev > 0:
 
         def dist(r: UniverseRow) -> float:
@@ -224,7 +226,10 @@ def select_peers(
 
         cands.sort(key=dist)
         similar = [r for r in cands if dist(r) <= math.log(band)]
-        cands = similar if len(similar) >= 3 else cands
+        if len(similar) < min_peers and len(cands) > len(similar):
+            widened = True
+            similar = cands[: max(min_peers, len(similar))]
+        cands = similar
     same_sic = [r.ticker for r in cands]
     ordered = [t for t in provider_peers if t in set(same_sic)] + [
         t for t in same_sic if t not in provider_peers
@@ -234,6 +239,8 @@ def select_peers(
     how = "same industry (SIC) and similar revenue" + (
         ", led by the provider's peer list" if provider_peers else ""
     )
+    if widened:
+        how += f"; fewer than {min_peers} filers were within {band:g}× this company's revenue, so the nearest-sized were added"
     return ordered[:max_peers], how
 
 
