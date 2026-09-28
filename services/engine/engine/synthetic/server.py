@@ -346,6 +346,24 @@ class SyntheticServer:
                         for k, v in inst.items():
                             if LINE_ITEMS.get(k) and LINE_ITEMS[k].kind == "instant":
                                 add(k, None, e0, v, f, "FY", fy)
+                        debt = inst.get("debt_current", 0.0) + inst.get("debt_noncurrent", 0.0)
+                        if debt > 0 and co.spec.kind != "bank" and y == fy:
+                            w = _seeded("ladder", co.ticker, y).dirichlet([2, 2, 2, 2, 2, 6])
+                            if co.ticker == "ZZSML":
+                                w = np.array([0.7, 0.3, 0, 0, 0, 0])  # a wall of debt due soon
+                            for key, share in zip(
+                                (
+                                    "debt_maturity_y1",
+                                    "debt_maturity_y2",
+                                    "debt_maturity_y3",
+                                    "debt_maturity_y4",
+                                    "debt_maturity_y5",
+                                    "debt_maturity_after5",
+                                ),
+                                w,
+                                strict=True,
+                            ):
+                                add(key, None, e0, debt * float(share), f, "FY", fy)
             else:
                 qs = by_fy[fy]
                 cur = qs[qn - 1]
@@ -970,10 +988,13 @@ class SyntheticServer:
         n = 3 if period == "annual" else 4
         for k in range(1, n + 1):
             if period == "annual":
-                y, m = last.end.year + k, co.spec.fye_month
+                # the fiscal year in progress (if any) is the first estimate year
+                first_fy = last.fy if last.q < 4 else last.fy + 1
+                y, m = first_fy + k - 1, co.spec.fye_month
                 pe = date(y, m, 30 if m == 9 else 31)
-                r = rev * (1 + g) ** k
-                e = (ni * (1 + g + 0.03) ** k) / sh
+                frac = k - (last.q / 4 if last.q < 4 else 0)
+                r = rev * (1 + g) ** frac
+                e = (ni * (1 + g + 0.03) ** frac) / sh
             else:
                 pe = last.end + timedelta(days=91 * k)
                 r = rev / 4 * (1 + g) ** (k / 4)

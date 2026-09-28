@@ -68,12 +68,19 @@ interface Loaded<T> {
 }
 
 /** Fetch one report section. While refetching, the previous data stays visible (no skeleton flash). */
-export function useSection<T = AnySection>(ticker: string, name: string, version = 0): SectionState<T> {
-  const key = `${ticker}|${name}|${version}`;
+export function useSection<T = AnySection>(
+  ticker: string,
+  name: string,
+  version = 0,
+  query = "",
+): SectionState<T> {
+  const key = `${ticker}|${name}|${version}|${query}`;
   const [loaded, setLoaded] = useState<Loaded<T> | null>(null);
   useEffect(() => {
     const ctrl = new AbortController();
-    getJSON<T>(`/report/${encodeURIComponent(ticker)}/section/${name}`, { signal: ctrl.signal })
+    getJSON<T>(`/report/${encodeURIComponent(ticker)}/section/${name}${query ? `?${query}` : ""}`, {
+      signal: ctrl.signal,
+    })
       .then((data) => setLoaded({ key, data, error: null, notFound: false }))
       .catch((e: unknown) => {
         if (ctrl.signal.aborted) return;
@@ -86,7 +93,7 @@ export function useSection<T = AnySection>(ticker: string, name: string, version
         }));
       });
     return () => ctrl.abort();
-  }, [key, ticker, name]);
+  }, [key, ticker, name, query]);
   const sameTicker = loaded?.key.split("|")[0] === ticker && loaded?.key.split("|")[1] === name;
   return {
     data: sameTicker ? (loaded?.data ?? null) : null,

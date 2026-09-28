@@ -56,9 +56,9 @@ export function MetricCell({
       <MetricTip m={m}>
         <button
           type="button"
-          className="group flex items-center gap-1 text-left text-xs text-muted hover:text-ink-2"
+          className="group flex max-w-full items-center gap-1 text-left text-xs text-muted hover:text-ink-2"
         >
-          <span className="truncate">{m.label}</span>
+          <span className="min-w-0 truncate">{m.label}</span>
           <Info className="size-3 shrink-0 opacity-60 group-hover:opacity-100" aria-hidden />
           <span className="sr-only">definition and source</span>
         </button>

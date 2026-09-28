@@ -8,12 +8,18 @@ import { getJSON, useSection } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { DISCLAIMER_SHORT } from "@/lib/legal";
 import { pushRecent } from "@/lib/recent";
+import { FundamentalsSection } from "./fundamentals";
 import { ReportHeader } from "./header";
 import { SnapshotStats } from "./overview";
+import { OverviewSection } from "./overview-section";
+import { PeersSection } from "./peers";
 
 const NAV = [
   { id: "snapshot", label: "Snapshot" },
+  { id: "overview", label: "Overview" },
   { id: "chart", label: "Chart" },
+  { id: "fundamentals", label: "Fundamentals" },
+  { id: "peers", label: "Peers" },
 ];
 
 export function ReportPage({ ticker }: { ticker: string }) {
@@ -21,6 +27,15 @@ export function ReportPage({ ticker }: { ticker: string }) {
   const [refreshing, setRefreshing] = useState(false);
   const company = useSection(ticker, "company", version);
   const chart = useSection(ticker, "chart", version);
+  const overview = useSection(ticker, "overview", version);
+  const fundamentals = useSection(ticker, "fundamentals", version);
+  const [peerOverride, setPeerOverride] = useState<string[] | null>(null);
+  const peers = useSection(
+    ticker,
+    "peers",
+    version,
+    peerOverride ? `peers=${encodeURIComponent(peerOverride.join(","))}` : "",
+  );
 
   useEffect(() => {
     if (company.data) pushRecent(company.data.identity.ticker);
@@ -84,6 +99,15 @@ export function ReportPage({ ticker }: { ticker: string }) {
           {company.data && <SnapshotStats company={company.data} />}
         </SectionShell>
         <SectionShell
+          id="overview"
+          title="Company overview"
+          data={overview.data}
+          loading={overview.loading}
+          error={overview.error}
+        >
+          {overview.data && <OverviewSection o={overview.data} />}
+        </SectionShell>
+        <SectionShell
           id="chart"
           title="Price chart"
           data={chart.data}
@@ -100,6 +124,22 @@ export function ReportPage({ ticker }: { ticker: string }) {
                 low52: company.data?.stats?.low_52w?.value,
               }}
             />
+          )}
+        </SectionShell>
+        <SectionShell
+          id="fundamentals"
+          title="Fundamentals"
+          subtitle="Statements, ratios, growth, quality and sector KPIs from SEC filings"
+          data={fundamentals.data}
+          loading={fundamentals.loading}
+          error={fundamentals.error}
+          skeletonHeight="h-72"
+        >
+          {fundamentals.data && <FundamentalsSection f={fundamentals.data} />}
+        </SectionShell>
+        <SectionShell id="peers" title="Peers" data={peers.data} loading={peers.loading} error={peers.error}>
+          {peers.data && (
+            <PeersSection key={peerOverride?.join(",") ?? "auto"} p={peers.data} onPeers={setPeerOverride} />
           )}
         </SectionShell>
         <p className="text-xs text-muted">

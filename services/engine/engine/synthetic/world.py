@@ -689,9 +689,9 @@ def _sim_reit(spec: Spec, rng: np.random.Generator) -> list[Quarter]:
             ffo = ni + dna - gain
             maint = revenue * 0.015
             if dps_annual is None:
-                dps_annual = 0.8 * ffo * 4 / shares
+                dps_annual = 0.74 * ffo * 4 / shares
             if q == 1 and fy > spec.first_fy:
-                dps_annual *= 1.04
+                dps_annual *= 1.025
             div = dps_annual / 4 * shares
             price_prov = max(ffo * 4 / shares * spec.pe, 1.0)
             eq_issue = acq * 0.5

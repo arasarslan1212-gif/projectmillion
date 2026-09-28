@@ -53,8 +53,10 @@ class _ContextCache:
         self.d: OrderedDict[tuple, tuple[float, ReportContext]] = OrderedDict()
         self.lock = threading.Lock()
 
-    def get(self, ticker: str, as_of: date | None, pit: bool) -> ReportContext:
-        key = (ticker.upper(), as_of, pit, get_settings().data_tier, get_config().hash)
+    def get(
+        self, ticker: str, as_of: date | None, pit: bool, peers: tuple[str, ...] | None = None
+    ) -> ReportContext:
+        key = (ticker.upper(), as_of, pit, get_settings().data_tier, get_config().hash, peers)
         now = time.time()
         with self.lock:
             hit = self.d.get(key)
@@ -62,6 +64,8 @@ class _ContextCache:
                 self.d.move_to_end(key)
                 return hit[1]
             ctx = ReportContext(ticker, as_of=as_of, pit=pit)
+            if peers:
+                ctx.peer_override = list(peers)
             self.d[key] = (now, ctx)
             while len(self.d) > self.cap:
                 self.d.popitem(last=False)
@@ -98,8 +102,10 @@ def run_section(ctx: ReportContext, name: str) -> dict:
     return out
 
 
-def get_section(ticker: str, name: str, as_of: date | None = None, pit: bool = False) -> dict:
-    ctx = contexts.get(ticker, as_of, pit)
+def get_section(
+    ticker: str, name: str, as_of: date | None = None, pit: bool = False, peers: tuple[str, ...] | None = None
+) -> dict:
+    ctx = contexts.get(ticker, as_of, pit, peers)
     _ = ctx.symbol  # raises TickerNotFound early
     out = run_section(ctx, name)
     out["ticker"] = ctx.ticker

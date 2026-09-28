@@ -1,0 +1,259 @@
+# Metric definitions: the single source for tooltips, the glossary and the Methodology page.
+# Each entry: label, definition (analyst wording), formula, plain (plain-English), optional example.
+
+price:
+  label: Price
+  definition: Last traded price, or the last daily close when no intraday quote is configured.
+  plain: What one share last cost.
+change:
+  label: Daily change
+  definition: Price change versus the previous trading day's close.
+  formula: price − previous close
+change_pct:
+  label: Daily change %
+  definition: Percentage price change versus the previous close.
+  formula: price ÷ previous close − 1
+after_hours:
+  label: After-hours price
+  definition: Last trade outside regular hours. Requires an extended-hours quote feed.
+market_cap:
+  label: Market capitalization
+  definition: Total value of all common shares at the current price.
+  formula: price × shares outstanding
+  plain: What the whole company would cost to buy at today's share price.
+  example: 1 billion shares at $50 = $50 billion.
+enterprise_value:
+  label: Enterprise value
+  definition: Value of the operating business to all capital providers.
+  formula: market cap + total debt − cash & short-term investments + noncontrolling interests
+  plain: Market cap plus the debt you'd take on, minus the cash you'd get.
+shares_outstanding:
+  label: Shares outstanding
+  definition: Common shares outstanding from the latest filing's cover page, converted to current share units for any later splits.
+low_52w:
+  label: 52-week low
+  definition: Lowest price over the past 52 weeks (split-adjusted).
+high_52w:
+  label: 52-week high
+  definition: Highest price over the past 52 weeks (split-adjusted).
+pos_52w:
+  label: Position in 52-week range
+  definition: Where the price sits between the 52-week low (0%) and high (100%).
+  formula: (price − low) ÷ (high − low)
+volume:
+  label: Volume
+  definition: Shares traded in the latest session.
+avg_volume:
+  label: Average volume (3 months)
+  definition: Mean daily shares traded over the last 63 sessions.
+volume_ratio:
+  label: Volume vs. average
+  definition: Latest volume relative to the 3-month average; above 1× means unusually active trading.
+  formula: volume ÷ average volume
+pe_ttm:
+  label: P/E (trailing twelve months)
+  definition: Price relative to diluted earnings per share over the last four reported quarters. Not meaningful when EPS is negative.
+  formula: price ÷ TTM diluted EPS
+  plain: How many years of current profits you pay for with today's price.
+  example: A $100 stock earning $5 a share has a P/E of 20.
+ev_ebitda_ttm:
+  label: EV/EBITDA (trailing)
+  definition: Enterprise value relative to trailing operating earnings before depreciation and amortization. Not used for banks and insurers.
+  formula: enterprise value ÷ TTM EBITDA
+dividend_yield:
+  label: Dividend yield (trailing)
+  definition: Dividends paid per share over the last 12 months (by ex-date) relative to price.
+  formula: trailing 12-month dividends per share ÷ price
+beta:
+  label: Beta
+  definition: Sensitivity of weekly returns to the market (SPY as S&P 500 proxy) over 3 years, Blume-adjusted toward 1 because raw betas tend to revert.
+  formula: 0.67 × OLS beta + 0.33
+  plain: How much the stock tends to move when the market moves 1%.
+
+# ---- overview -------------------------------------------------------------------------
+hq:
+  label: Business address
+  definition: Business address city and state from SEC submissions.
+ipo_date:
+  label: IPO / listing date
+  definition: First trading date reported by the data provider.
+founded:
+  label: Founded
+  definition: Founding date. Not available from SEC data or the configured providers.
+employees:
+  label: Employees
+  definition: Full-time employees as reported in filings (dei:EntityNumberOfEmployees) or by the provider.
+employee_growth:
+  label: Employee growth
+  definition: Change in reported headcount versus the prior year.
+ceo:
+  label: CEO
+  definition: Current chief executive per the provider's key-executives data.
+ceo_tenure:
+  label: CEO tenure
+  definition: Years since the CEO took the role, when the start year is provided.
+fiscal_year_end:
+  label: Fiscal year end
+  definition: Month/day the company's fiscal year ends (SEC submissions).
+float_shares:
+  label: Float
+  definition: Shares available to public investors (excludes closely held and restricted shares).
+float_pct:
+  label: Float % of shares
+  definition: Float as a share of shares outstanding.
+insider_pct:
+  label: Insider ownership (Form 4 reporters)
+  definition: Holdings last reported on Form 4 by insiders who traded in the lookback window, as a share of shares outstanding. Understates total insider ownership.
+institutional_pct:
+  label: Institutional ownership (top holders)
+  definition: Combined stake of the largest 13F filers returned by the provider.
+index_membership:
+  label: Index membership
+  definition: Membership in the S&P 500, when licensed constituent data is configured.
+
+# ---- fundamentals -----------------------------------------------------------------------
+cagr:
+  label: Compound annual growth rate
+  definition: Annualized growth between the first and last fiscal year of the window. Undefined when either end is zero or negative.
+  formula: (last ÷ first)^(1/years) − 1
+  plain: The steady yearly growth rate that would get you from the first value to the last.
+yoy_growth:
+  label: Year-over-year growth
+  definition: Change versus the same period a year earlier. Uses the absolute prior value, so a smaller loss counts as an improvement.
+  formula: (current − prior) ÷ |prior|
+gross_margin:
+  label: Gross margin
+  definition: Share of revenue left after the direct cost of goods and services.
+  formula: gross profit ÷ revenue
+operating_margin:
+  label: Operating margin
+  definition: Share of revenue left after operating expenses (including stock-based compensation).
+  formula: operating income ÷ revenue
+net_margin:
+  label: Net margin
+  formula: net income ÷ revenue
+  definition: Share of revenue that ends up as net income.
+fcf_margin:
+  label: FCF margin
+  formula: (operating cash flow − capex) ÷ revenue
+  definition: Share of revenue converted into free cash flow.
+roe:
+  label: Return on equity
+  definition: Net income relative to average shareholders' equity. Not meaningful when equity is negative.
+  formula: net income ÷ average equity
+roic:
+  label: Return on invested capital
+  definition: After-tax operating profit relative to average invested capital (equity + debt − cash). Shown as not meaningful for banks and insurers.
+  formula: EBIT × (1 − tax rate) ÷ average (equity + debt − cash)
+  plain: How much profit the business earns on the money invested in it.
+rotce:
+  label: Return on tangible common equity
+  definition: Net income relative to average equity excluding goodwill and intangibles; the key profitability metric for banks.
+  formula: net income ÷ average (equity − goodwill − intangibles)
+interest_coverage:
+  label: Interest coverage
+  definition: How many times operating profit covers interest expense.
+  formula: EBIT ÷ interest expense
+fcf_conversion:
+  label: FCF conversion
+  definition: Free cash flow relative to net income; above 100% means earnings are backed by cash.
+  formula: free cash flow ÷ net income
+sbc_pct_revenue:
+  label: Stock comp % of revenue
+  definition: Stock-based compensation expense relative to revenue. It is a real cost that dilutes shareholders.
+  formula: stock-based compensation ÷ revenue
+fcf_after_sbc:
+  label: FCF after stock comp
+  definition: Free cash flow minus stock-based compensation, treating share-based pay as the cash-equivalent cost it is.
+  formula: operating cash flow − capex − stock-based compensation
+capex_intensity:
+  label: Capex intensity
+  definition: Capital expenditures relative to revenue.
+  formula: capex ÷ revenue
+nwc_pct_revenue:
+  label: Working capital % of revenue
+  definition: Current assets minus current liabilities, relative to annual revenue.
+dilution_3y:
+  label: Share count change (3y)
+  definition: Compound annual change in diluted weighted-average shares. Positive means dilution; negative means net buybacks.
+nim:
+  label: Net interest margin
+  definition: Net interest income relative to average total assets (a proxy, because earning-asset data is not standardized in XBRL).
+  formula: net interest income ÷ average total assets
+efficiency_ratio:
+  label: Efficiency ratio
+  definition: Bank operating costs relative to revenue; lower is better.
+  formula: noninterest expense ÷ (net interest income + noninterest income)
+loan_to_deposit:
+  label: Loans / deposits
+  definition: Loans funded per dollar of deposits.
+loan_growth:
+  label: Loan growth
+  definition: Change in net loans versus a year earlier.
+deposit_growth:
+  label: Deposit growth
+  definition: Change in deposits versus a year earlier.
+cet1:
+  label: CET1 ratio
+  definition: Common equity tier 1 capital relative to risk-weighted assets. Reported in regulatory filings, not in standardized XBRL company facts.
+npl:
+  label: Non-performing loans
+  definition: Loans on non-accrual or 90+ days past due. Not standardized in XBRL company facts.
+combined_ratio:
+  label: Combined ratio
+  definition: Insurance losses plus underwriting expenses relative to premiums earned; below 100% means an underwriting profit.
+  formula: (losses + underwriting expenses) ÷ premiums earned
+premium_growth:
+  label: Premium growth
+  definition: Change in premiums earned versus the prior year.
+ffo:
+  label: Funds from operations
+  definition: NAREIT-style REIT earnings built from tagged items.
+  formula: net income + real-estate depreciation & amortization − gains on property sales
+ffo_per_share:
+  label: FFO per share
+  formula: FFO ÷ diluted shares
+  definition: FFO per diluted share.
+affo:
+  label: Adjusted FFO (approx.)
+  definition: FFO minus capital improvements. Straight-line rent and other adjustments are not standardized, so this is an approximation.
+affo_per_share:
+  label: AFFO per share
+  definition: AFFO per diluted share.
+  formula: AFFO ÷ diluted shares
+affo_payout:
+  label: Dividends / AFFO
+  definition: Dividends paid relative to AFFO; above 100% means the dividend exceeds recurring cash earnings.
+occupancy:
+  label: Occupancy
+  definition: Share of leasable space occupied. Disclosed in text, not standardized XBRL.
+rule_of_40:
+  label: Rule of 40
+  definition: Revenue growth plus FCF margin. Software companies at or above 40% are generally considered to balance growth and profitability well.
+  formula: revenue growth + FCF margin
+nrr:
+  label: Net revenue retention
+  definition: Revenue from existing customers now versus a year ago. Disclosed by some software companies in text only.
+dio:
+  label: Days inventory outstanding
+  formula: average inventory ÷ (cost of revenue ÷ 365)
+  definition: How many days of cost of sales are held as inventory.
+ccc:
+  label: Cash conversion cycle
+  definition: Days between paying suppliers and collecting from customers.
+  formula: DSO + DIO − DPO
+same_store_sales:
+  label: Same-store sales
+  definition: Sales growth at stores open over a year. Company-specific disclosure; not in XBRL facts.
+production:
+  label: Production volumes
+  definition: Oil and gas production. Company-specific disclosure; not in XBRL facts.
+breakeven:
+  label: Breakeven price
+  definition: Commodity price needed to fund spending. Company-specific disclosure.
+rate_base_growth:
+  label: PP&E growth (rate-base proxy)
+  definition: Growth in net property, plant and equipment, used as a proxy for the regulated rate base that drives utility earnings.
+capex_to_dna:
+  label: Capex / depreciation
+  definition: Capital spending relative to depreciation; above 1× means the asset base is growing.

@@ -38,8 +38,8 @@ class Period:
     filed: dict[str, date] = field(default_factory=dict)  # key -> filing date of the value
     derived: dict[str, str] = field(default_factory=dict)  # key -> how it was derived
 
-    def get(self, key: str) -> float | None:
-        return self.values.get(key)
+    def get(self, key: str, default: float | None = None) -> float | None:
+        return self.values.get(key, default)
 
     @property
     def label(self) -> str:

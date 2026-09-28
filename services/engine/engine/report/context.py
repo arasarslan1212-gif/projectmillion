@@ -204,5 +204,39 @@ class ReportContext:
     def profile(self):
         return self.optional("profile", lambda: self.data.profile(self.ticker))
 
+    # ---- cross-sectional ---------------------------------------------------------------
+    peer_override: list[str] | None = None
+
+    @cached_property
+    def universe(self):
+        from engine.fundamentals.universe import build_universe
+
+        u = build_universe(self, int(self.cfg.get("peers.min_peers_for_percentiles", 8)))
+        if u is not None:
+            self.sources["universe"] = {
+                "source": self._label_src("SEC EDGAR frames"),
+                "fetched_at": None,
+                "status": "ok",
+                "reason": None,
+            }
+        return u
+
+    def _label_src(self, s: str) -> str:
+        return f"{s} (SYNTHETIC)" if self.synthetic else s
+
+    # ---- ownership ---------------------------------------------------------------------
+    @cached_property
+    def insiders(self):
+        if self.cik is None:
+            return None
+        txs = self._note("insiders", self.data.insiders(self.ticker, self.cik))
+        if txs is None:
+            return None
+        return [t for t in txs if t.filed_at <= self.as_of]
+
+    @cached_property
+    def institutions(self):
+        return self.optional("institutions", lambda: self.data.institutions(self.ticker))
+
     def recent(self, days: int) -> date:
         return self.as_of - timedelta(days=days)

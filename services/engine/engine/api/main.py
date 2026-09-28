@@ -76,11 +76,14 @@ def sections(ticker: str) -> dict:
 
 
 @app.get("/api/report/{ticker}/section/{name}")
-def report_section(ticker: str, name: str, as_of: date | None = None) -> dict:
+def report_section(ticker: str, name: str, as_of: date | None = None, peers: str | None = None) -> dict:
     if name not in builder.section_names():
         raise HTTPException(404, detail=f"unknown section '{name}'")
+    peer_list = (
+        tuple(sorted({p.strip().upper() for p in peers.split(",") if p.strip()}))[:15] if peers else None
+    )
     try:
-        return builder.get_section(ticker, name, as_of=as_of, pit=as_of is not None)
+        return builder.get_section(ticker, name, as_of=as_of, pit=as_of is not None, peers=peer_list)
     except TickerNotFound:
         raise _not_found(ticker) from None
 
