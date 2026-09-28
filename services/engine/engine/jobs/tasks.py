@@ -23,7 +23,25 @@ def score_analysts() -> None:
     log.info("analyst scores stored: %s", res)
 
 
+def score_outcomes() -> None:
+    """Grade every snapshot whose 12-month horizon has passed."""
+    from engine.track.scoring import score_due
+
+    log.info("snapshot outcomes: %s", score_due())
+
+
+def recalibrate() -> None:
+    """Refit the prob-up map and range scale on all known outcomes; every change is logged."""
+    from engine import clock
+    from engine.track.calibration import recalibrate as fit
+
+    res = fit(clock.today(), clock.is_synthetic())
+    log.info("recalibration: %s", res["reason"])
+
+
 JOBS: list[tuple[str, dict, object]] = [
     ("refresh_symbols", {"hour": 5, "minute": 7}, refresh_symbols),
     ("score_analysts", {"hour": 6, "minute": 13}, score_analysts),
+    ("score_outcomes", {"hour": 6, "minute": 41}, score_outcomes),
+    ("recalibrate", {"day_of_week": "sun", "hour": 7, "minute": 3}, recalibrate),
 ]

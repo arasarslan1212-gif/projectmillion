@@ -49,3 +49,16 @@ make test        # lint + typecheck + engine tests (pytest) + web tests (vitest)
 make fmt         # ruff + prettier
 make migrate     # alembic upgrade head (DATABASE_URL)
 ```
+
+## Track record
+
+Every live report stores a snapshot of its estimate; a daily job grades snapshots once their 12-month horizon passes, and a weekly job refits (and logs) the recalibration. Until live history matures, the evidence is a walk-forward, point-in-time backtest, labeled BACKTEST everywhere it appears:
+
+```bash
+make backtest                                   # default universe, quarterly from 2019, then recalibrate
+make backtest ARGS="--tickers AAPL,JPM --every-months 6"
+make score-outcomes                             # grade snapshots that are due
+make recalibrate                                # refit the prob-up map and range scale; every fit is logged
+```
+
+Results are at `/track-record`. `/methodology` is generated from `config/engine.yaml`, so it always shows the parameters the engine runs with.

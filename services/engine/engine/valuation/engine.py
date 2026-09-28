@@ -14,6 +14,7 @@ drawn from N(ln(P50/P0), σ_extra) with daily volatility σ_market.
 from __future__ import annotations
 
 import hashlib
+import logging
 import math
 from dataclasses import replace
 from datetime import timedelta
@@ -29,6 +30,8 @@ from engine.valuation import models
 from engine.valuation.dcf import DcfInputs, monte_carlo, run_dcf, sensitivity_grid, tornado
 from engine.valuation.reverse_dcf import assess, implied_fcf_growth, implied_revenue_growth
 from engine.valuation.wacc import compute_wacc
+
+log = logging.getLogger("engine.valuation")
 
 
 def _median(xs: list[float]) -> float | None:
@@ -529,25 +532,36 @@ def value(ctx, include_analysts: bool | None = None) -> dict:
     }
     conf = confidence_score(ctx, parts, cfg_all)
     widen = 1 + float(cfg["range"]["confidence_widening"]) * (1 - conf["score"] / 100)
-    sigma_total = math.sqrt(sigma_mkt**2 + sigma_extra**2) * widen
+    sigma_total_raw = math.sqrt(sigma_mkt**2 + sigma_extra**2) * widen
+    recal = current_recalibration(ctx)
+    scale = recal["sigma_scale"] if recal else 1.0
+    sigma_total = sigma_total_raw * scale
     z = float(cfg["range"]["z80"])
 
     def target_from(lnp: float) -> dict:
         p50 = math.exp(lnp)
         mu = math.log(p50 / p0)
+        raw_up = float(norm.cdf(mu / sigma_total_raw))
+        pmap = (recal or {}).get("prob_map")
         return {
             "p10": p50 * math.exp(-z * sigma_total),
             "p50": p50,
             "p90": p50 * math.exp(z * sigma_total),
             "implied_return": p50 / p0 - 1,
             "expected_return": math.exp(mu + sigma_total**2 / 2) - 1,
-            "prob_up": float(norm.cdf(mu / sigma_total)),
+            "prob_up": apply_prob_map(raw_up, pmap) if pmap else float(norm.cdf(mu / sigma_total)),
+            "prob_up_raw": raw_up,
         }
 
     target = target_from(ln_p50)
+    target["calibration"] = (
+        {"id": recal["id"], "fitted_on": recal["fitted_on"], "n": recal["n"], "sigma_scale": scale,
+         "prob_map_applied": recal.get("prob_map") is not None, "reason": recal["reason"]}
+        if recal else None
+    )  # fmt: skip
     alt_target = target_from(dist(rows_alt)[0]) if rows_alt else None
     target["prob_drawdown_20"] = drawdown_probability(
-        ctx, math.log(target["p50"] / p0), sigma_extra * widen, sigma_mkt, cfg
+        ctx, math.log(target["p50"] / p0), sigma_extra * widen * scale, sigma_mkt * scale, cfg
     )
 
     # ---- reverse DCF --------------------------------------------------------------------------
@@ -611,7 +625,9 @@ def value(ctx, include_analysts: bool | None = None) -> dict:
     }
 
     sanity = sanity_checks(ctx, target, dcf_block, peers, w, cfg, p0)
-    cone = cone_path(ctx, p0, math.log(target["p50"] / p0), sigma_mkt * widen, sigma_extra * widen)
+    cone = cone_path(
+        ctx, p0, math.log(target["p50"] / p0), sigma_mkt * widen * scale, sigma_extra * widen * scale
+    )
     scen = (
         dcf_block["scenarios"]
         if dcf_block
@@ -646,6 +662,8 @@ def value(ctx, include_analysts: bool | None = None) -> dict:
             "monte_carlo": sigma_mc,
             "extra": sigma_extra,
             "widening": widen,
+            "calibration_scale": scale,
+            "total_raw": sigma_total_raw,
             "total": sigma_total,
             "convergence": lam,
             "drift": drift,
@@ -732,9 +750,26 @@ def method_accuracy(ctx) -> dict:
     try:
         from engine.track.calibration import method_accuracy_weights
 
-        return method_accuracy_weights(ctx.sector.profile)
+        return method_accuracy_weights(ctx.sector.profile, ctx.as_of, ctx.synthetic)
     except Exception:
         return {"_source": "no backtest results yet; all methods weighted equally on accuracy"}
+
+
+def current_recalibration(ctx) -> dict | None:
+    """The latest applied track-record recalibration fitted by the report's date (None in backtests)."""
+    try:
+        from engine.track.calibration import current
+
+        return current(ctx.as_of, ctx.synthetic)
+    except Exception:
+        log.exception("recalibration lookup failed; using the raw model")
+        return None
+
+
+def apply_prob_map(p: float, pmap: dict) -> float:
+    from engine.track.calibration import apply_prob_map as f
+
+    return f(p, pmap)
 
 
 def calibration_for(ctx, vol: float | None) -> dict:

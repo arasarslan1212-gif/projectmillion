@@ -237,8 +237,12 @@ def target_path(F: Facts, val: dict | None) -> dict:
     if F.has("val.sigma_market", "val.sigma_total"):
         analyst.append(S(
             f"The 80% range comes from market volatility of {fmt(F.get('val.sigma_market'), 'pct', 0)} a year plus "
-            f"disagreement between methods, widened for confidence to a total of {fmt(F.get('val.sigma_total'), 'pct', 0)}.",
+            f"disagreement between methods, widened for confidence"
+            + (f" and scaled by {fmt(F.get('val.calibration_scale'), 'x', 2)} by the track-record recalibration"
+               if F.has("val.calibration_scale") else "")
+            + f" to a total of {fmt(F.get('val.sigma_total'), 'pct', 0)}.",
             "val.range_coverage", "val.sigma_market", "val.sigma_total",
+            "val.calibration_scale" if F.has("val.calibration_scale") else "",
         ))  # fmt: skip
     plain = [S(
         f"The app values the company {fmt(F.get('val.n_methods'), 'count')} different ways and averages them, giving "

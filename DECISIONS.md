@@ -181,3 +181,64 @@ If nothing qualifies, it says plainly that the model's inputs could be wrong.
 
 ### D-044: One reading mode for the whole app
 Plain/Analyst is a single setting stored in the browser. The toggle is in the report header and the Explain section, and both stay in sync across tabs. It switches the Verdict and every Explain part, and in Plain mode metric tooltips show the plain-English definition (where one is written) instead of the formula. The Verdict card sits directly below the sticky header rather than inside it, so four sentences never cover the page. On phones the header no longer sticks: it would take half the screen.
+
+## M8: Track record, backtest and calibration
+
+### D-045: What a snapshot stores, and when
+A snapshot is taken when a live report's valuation is served. There is at most one per ticker, day and config hash, and it is written in the background so the page is not slowed. It stores the price, P10/P50/P90, prob-up, confidence, Trust Rating, pillars, engine version and config hash. It also stores the raw model outputs (range width and prob-up before any recalibration) and each valuation method's 12-month figure, so the track record can grade the model, the calibration and each method separately. Point-in-time views of past dates are never stored as live snapshots; only the backtest creates snapshots for past dates, and it flags them.
+
+### D-046: How a snapshot is graded
+The horizon is 365 calendar days. The realized price is the last close on or before the horizon date, expressed as the stock's return since the snapshot's own close and applied to the snapshot price, so a split in between cannot distort the grade. A snapshot with no close within 7 days of its horizon (delisted, or a data gap) is left ungraded and counted as skipped, not dropped silently. Grades:
+- inside P10–P90 or not;
+- the absolute error of P50;
+- whether the price rose;
+- the Brier score of prob-up.
+
+### D-047: Every statistic comes with its sample size
+Rates are shown with their count and a 95% Wilson interval, so 12 estimates never read like 1,000. The page shows:
+- coverage at nine nominal levels (not just 80%);
+- the share of outcomes below P10 and above P90 separately, which shows skew as well as width;
+- a probability calibration curve;
+- a PIT histogram;
+- the Brier score against the base rate (skill below 0 means it did worse than always forecasting the historical up-share);
+- 12-month returns by Trust Rating quintile, shown as measured with the rank correlation, even when it is flat.
+
+### D-048: The walk-forward backtest runs the raw model, point-in-time
+Every 3 months from 2019-03-29 until one horizon before today, the engine builds point-in-time reports for the universe: the six headline tickers plus 6 peers per profile on synthetic data, or `track.backtest.tickers` on real data. Each result is stored as a backtest snapshot and graded.
+
+The backtest runs with all track-record feedback switched off (`raw_model()`), so it grades the model itself and can never learn from its own future. Re-running replaces earlier backtest rows for the same ticker, date and config.
+
+Caveats are shown on every backtest view:
+- survivorship bias (today's listed companies);
+- provider restatements;
+- "simulation, not live";
+- "synthetic market" when applicable.
+
+Live and backtest results are never mixed unless the user asks for "All".
+
+The first full run exposed a point-in-time bug: peer prices came from a 420-day window ending *today*, so reports dated more than about 14 months back had no peer multiples and silently lost the peer valuation method. The window now reaches back to the report date, with a regression test.
+
+First results on the synthetic market: 1,072 estimates for 42 companies, 2019–2025.
+- **Ranges too wide:** 96% of outcomes fell inside P10–P90 against an 80% target, and the PIT histogram is heavy in the middle.
+- **Prob-up is weak:** its Brier skill is −0.06, slightly worse than always forecasting the base rate.
+- **The model was too pessimistic:** the mean implied return was 3.9% against a realized 13.4%.
+- **Trust Rating does not order returns:** the rank correlation is 0.09.
+
+The recalibration narrows the ranges ×0.70 (its configured floor) and remaps prob-up. The Trust Rating result is shown as measured.
+
+### D-049: How the track record feeds back into the model, point-in-time
+Three feedback paths, each using only outcomes whose horizon had passed by the report's date:
+1. **Confidence.** The calibration component uses the P10–P90 coverage error among graded estimates in the same volatility bucket, once there are at least 30. Coverage is measured for the range as the app currently draws it.
+2. **Method weights.** Each valuation method's weight is multiplied by (median method error ÷ its error), clipped to 0.6–1.4. This needs at least 40 graded estimates per method in the profile, else across all profiles.
+3. **Recalibration**, fitted weekly:
+   - an isotonic map for prob-up;
+   - a scale on the range width, bounded to 0.7–1.6.
+
+   Both are evaluated by 5-fold cross-validation over blocks of forecast dates. The map is applied only if it cuts out-of-fold Brier by at least 0.002. The scale is applied only if it moves out-of-fold coverage at least 2 points closer to 80%.
+
+P50 is never moved by recalibration. Every fit is stored with its evidence and decision, and shown in the recalibration log. A report uses the latest applied fit dated on or before its own date.
+
+We do **not** tune the model's assumptions to the synthetic market's results: that would be fitting to a simulation we wrote. The feedback paths above are generic and would behave the same on real data.
+
+### D-050: Methodology is generated from the configuration
+`GET /api/meta/methodology` walks the loaded `engine.yaml`: every value shown is the one the engine runs with. Each value is annotated with the comments written above it or beside it in the file, which a small parser extracts. Only the one-line introductions per section are prose. Dictionaries of per-profile values render as matrices (for example pillar weights by profile). The glossary comes from `metrics.yaml`, the same registry as the tooltips, and `/glossary` shows it on its own. The page states the engine version and config hash.

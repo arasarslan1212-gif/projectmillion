@@ -240,6 +240,9 @@ def build_facts(ctx: ReportContext, s: dict[str, dict | None]) -> Facts:
         sg = v.get("sigma") or {}
         F.add("val.sigma_market", "Market volatility (σ)", sg.get("market"), "pct", "valuation", digits=0)
         F.add("val.sigma_total", "Total uncertainty (σ)", sg.get("total"), "pct", "valuation", digits=0)
+        if sg.get("calibration_scale") not in (None, 1, 1.0):
+            F.add("val.calibration_scale", "Range scale from the track-record recalibration", sg["calibration_scale"],
+                  "x", "valuation", "track record", digits=2)  # fmt: skip
         F.add(
             "val.convergence",
             "Share of the gap to value closed in 12 months",

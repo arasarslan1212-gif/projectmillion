@@ -131,6 +131,10 @@ class ReportContext:
         return b["market"], b["sector_etfs"].get(self.sector.sector), b["market_label"]
 
     def other_prices(self, ticker: str, days: int | None = None) -> pd.DataFrame:
+        if self.as_of < clock.today():
+            days = (
+                None  # a past report needs prices up to its own date: use the full (shared, cached) history
+            )
         fx = self.data.prices(ticker, days)
         if fx.value is None:
             self.missing[f"prices:{ticker}"] = fx.reason or "unavailable"

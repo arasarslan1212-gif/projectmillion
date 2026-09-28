@@ -561,3 +561,28 @@ confidence:
     calibration_error: [0.30, 0.0]       # |P10–P90 coverage − 0.80| in the track record
   profile_caps: {biotech_pipeline: 35, growth_unprofitable: 65}
   missing_component_score: 40            # neutral-to-cautious score when a component has no data
+# ---------------------------------------------------------------------------------------
+# Track record: every report is snapshotted and scored when its 12-month horizon passes.
+track:
+  horizon_days: 365               # a snapshot is scored against the close this many days later
+  snapshot_on_report: true        # live (not point-in-time) reports store one snapshot per ticker per day
+  vol_buckets: [0.25, 0.45]       # realized volatility: low < 25% <= mid < 45% <= high
+  size_buckets: [2.0e+9, 1.0e+10] # market cap: small < $2B <= mid < $10B <= large
+  prob_bins: 10                   # bins for the probability calibration curve
+  trust_buckets: 5                # Trust Rating quantile buckets for forward returns
+  coverage_levels: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+  min_outcomes:
+    bucket_calibration: 30        # scored snapshots in a volatility bucket before confidence uses them
+    method_accuracy: 40           # scored snapshots per method (per profile, else all) before reweighting
+    recalibration: 150            # scored snapshots before a recalibration can be applied
+  method_accuracy_clip: [0.6, 1.4] # bounds on a method's accuracy multiplier in the blend
+  backtest:
+    start: "2019-03-29"           # first walk-forward date (month end)
+    every_months: 3               # spacing of walk-forward dates
+    per_profile: 6                # synthetic peers per profile added to the six headline tickers
+  recalibration:
+    apply: true                   # apply fitted maps to live reports when they pass the checks below
+    folds: 5                      # cross-validation folds (split by date, so no look-ahead)
+    min_brier_gain: 0.002         # isotonic prob-up map applied only if it cuts out-of-fold Brier by this much
+    min_coverage_gain: 0.02       # range scaling applied only if it moves out-of-fold P10–P90 coverage this much closer to 80%
+    sigma_scale_bounds: [0.7, 1.6]

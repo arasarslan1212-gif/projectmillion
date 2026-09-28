@@ -7,7 +7,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import date
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel, Field
@@ -77,26 +77,44 @@ def sections(ticker: str) -> dict:
     return {"sections": builder.section_names()}
 
 
+def _snapshot(ticker: str) -> None:
+    """Store today's estimate for the track record (once per ticker, day and config)."""
+    from engine.track.snapshots import record_live
+
+    try:
+        record_live(builder.contexts.get(ticker, None, False))
+    except Exception:
+        logging.getLogger("engine.track").exception("snapshot failed for %s", ticker)
+
+
 @app.get("/api/report/{ticker}/section/{name}")
-def report_section(ticker: str, name: str, as_of: date | None = None, peers: str | None = None) -> dict:
+def report_section(
+    ticker: str, name: str, background: BackgroundTasks, as_of: date | None = None, peers: str | None = None
+) -> dict:
     if name not in builder.section_names():
         raise HTTPException(404, detail=f"unknown section '{name}'")
     peer_list = (
         tuple(sorted({p.strip().upper() for p in peers.split(",") if p.strip()}))[:15] if peers else None
     )
     try:
-        return builder.get_section(ticker, name, as_of=as_of, pit=as_of is not None, peers=peer_list)
+        out = builder.get_section(ticker, name, as_of=as_of, pit=as_of is not None, peers=peer_list)
     except TickerNotFound:
         raise _not_found(ticker) from None
+    if name == "valuation" and as_of is None and not peer_list and out.get("status") == "ok":
+        background.add_task(_snapshot, ticker)
+    return out
 
 
 @app.get("/api/report/{ticker}")
-def report(ticker: str, sections: str | None = None) -> dict:
+def report(ticker: str, background: BackgroundTasks, sections: str | None = None) -> dict:
     names = [s for s in (sections or "").split(",") if s] or None
     try:
-        return builder.build_report(ticker, names)
+        out = builder.build_report(ticker, names)
     except TickerNotFound:
         raise _not_found(ticker) from None
+    if (out["sections"].get("valuation") or {}).get("status") == "ok":
+        background.add_task(_snapshot, ticker)
+    return out
 
 
 @app.post("/api/report/{ticker}/refresh")
@@ -206,3 +224,27 @@ def dcf_what_if(ticker: str, body: DcfOverrides) -> dict:
 @app.get("/api/meta/definitions")
 def definitions() -> dict:
     return {"definitions": load_metric_defs()}
+
+
+@app.get("/api/meta/methodology")
+def methodology() -> dict:
+    """The Methodology page: every parameter from the engine configuration, with its documented meaning."""
+    from engine.meta.methodology import build
+
+    return build()
+
+
+@app.get("/api/track-record")
+def track_record(
+    kind: str = Query("backtest", pattern="^(backtest|live|all)$"), profile: str | None = None
+) -> dict:
+    from engine.track.service import track_record as tr
+
+    return tr(kind, profile)
+
+
+@app.get("/api/track-record/{ticker}")
+def track_record_ticker(ticker: str) -> dict:
+    from engine.track.service import snapshots_for
+
+    return snapshots_for(ticker)

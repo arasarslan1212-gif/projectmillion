@@ -129,3 +129,27 @@ export function useDebounced<T>(value: T, ms: number): T {
   }, [value, ms]);
   return v;
 }
+
+/** Fetch any engine path; refetches when the path changes and keeps the last data while loading. */
+export function useJSON<T>(path: string | null): { data: T | null; error: string | null; loading: boolean } {
+  const [state, setState] = useState<{ path: string | null; data: T | null; error: string | null }>({
+    path: null,
+    data: null,
+    error: null,
+  });
+  useEffect(() => {
+    if (!path) return;
+    const ctrl = new AbortController();
+    getJSON<T>(path, { signal: ctrl.signal })
+      .then((data) => setState({ path, data, error: null }))
+      .catch((e: unknown) => {
+        if (!ctrl.signal.aborted) setState((s) => ({ path, data: s.data, error: (e as Error).message }));
+      });
+    return () => ctrl.abort();
+  }, [path]);
+  return {
+    data: state.data,
+    error: state.path === path ? state.error : null,
+    loading: !!path && state.path !== path,
+  };
+}

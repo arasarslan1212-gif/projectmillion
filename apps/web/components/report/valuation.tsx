@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { axisStyle, baseOption, EChart } from "@/components/charts/echart";
@@ -9,7 +10,7 @@ import { Segmented } from "@/components/ui/segmented";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getJSON, useDebounced } from "@/lib/api";
 import { cn } from "@/lib/cn";
-import { formatValue } from "@/lib/format";
+import { formatDate, formatValue } from "@/lib/format";
 import { DISCLAIMER_SHORT } from "@/lib/legal";
 import type { ThemeColors } from "@/lib/theme";
 import { withAlpha } from "@/lib/theme";
@@ -737,8 +738,25 @@ export function ValuationSection({
           market σ {formatValue(v.sigma.market, "pct")}, method dispersion{" "}
           {formatValue(v.sigma.method_dispersion, "pct")}
           {v.dcf ? `, DCF Monte Carlo σ ${formatValue(v.sigma.monte_carlo, "pct")}` : ""}, widened ×
-          {v.sigma.widening.toFixed(2)} for confidence → total σ {formatValue(v.sigma.total, "pct")}.
+          {v.sigma.widening.toFixed(2)} for confidence
+          {v.target.calibration && v.sigma.calibration_scale !== 1
+            ? `, scaled ×${v.sigma.calibration_scale.toFixed(2)} by the track-record recalibration`
+            : ""}{" "}
+          → total σ {formatValue(v.sigma.total, "pct")}.
         </p>
+        {v.target.calibration && (
+          <p className="mt-1 text-xs text-muted">
+            Recalibrated from {v.target.calibration.n} graded past estimates (fitted{" "}
+            {formatDate(v.target.calibration.fitted_on)}
+            {v.target.calibration.prob_map_applied
+              ? "; the probability of a higher price is recalibrated too"
+              : ""}
+            ). The median (P50) is never moved.{" "}
+            <Link href="/track-record" className="underline underline-offset-2">
+              Track record
+            </Link>
+          </p>
+        )}
       </div>
 
       <div>

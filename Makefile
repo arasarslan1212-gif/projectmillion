@@ -5,7 +5,7 @@ ENGINE := services/engine
 WEB := apps/web
 PY := $(ENGINE)/.venv/bin/python
 
-.PHONY: setup dev engine web test test-engine test-web lint fmt typecheck migrate record-fixtures score-analysts clean
+.PHONY: setup dev engine web test test-engine test-web lint fmt typecheck migrate record-fixtures score-analysts backtest score-outcomes recalibrate clean
 
 setup:
 	cd $(ENGINE) && uv venv --python 3.12 -q .venv && uv sync -q
@@ -51,6 +51,15 @@ record-fixtures: ## needs network + keys: DATA_TIER=starter FMP_API_KEY=... make
 
 score-analysts: ## run the nightly analyst ingestion + scoring job once
 	cd $(ENGINE) && .venv/bin/python -c "from engine.jobs.tasks import score_analysts; import logging; logging.basicConfig(level=logging.INFO); score_analysts()"
+
+backtest: ## walk-forward point-in-time backtest (ARGS="--tickers A,B --start 2019-03-29 --every-months 3")
+	cd $(ENGINE) && .venv/bin/python -m engine.track.backtest --recalibrate $(ARGS)
+
+score-outcomes: ## grade snapshots whose 12-month horizon has passed
+	cd $(ENGINE) && .venv/bin/python -c "from engine.jobs.tasks import score_outcomes; import logging; logging.basicConfig(level=logging.INFO); score_outcomes()"
+
+recalibrate: ## refit and log the track-record recalibration
+	cd $(ENGINE) && .venv/bin/python -c "from engine.jobs.tasks import recalibrate; import logging; logging.basicConfig(level=logging.INFO); recalibrate()"
 
 clean:
 	rm -rf $(WEB)/.next $(ENGINE)/.pytest_cache $(ENGINE)/dev.db*

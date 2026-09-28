@@ -303,6 +303,28 @@ class SnapshotOutcome(Base):
     scored_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
 
 
+class CalibrationChange(Base):
+    """One fitted recalibration: an isotonic map for prob-up and a scale for the range width.
+
+    Every fit is stored, applied or not, with the evidence for the decision, so the track record page can show
+    each change. Live reports use the latest applied fit dated on or before their as-of date."""
+
+    __tablename__ = "calibration_changes"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    fitted_on: Mapped[date] = mapped_column(Date, index=True)
+    data_cutoff: Mapped[date] = mapped_column(Date)
+    is_synthetic: Mapped[bool] = mapped_column(Boolean, default=False)
+    n: Mapped[int] = mapped_column(Integer)
+    sigma_scale: Mapped[float] = mapped_column(Float, default=1.0)
+    prob_map_json: Mapped[dict | None] = mapped_column(JSON)
+    metrics_json: Mapped[dict] = mapped_column(JSON)
+    applied: Mapped[bool] = mapped_column(Boolean, default=False)
+    reason: Mapped[str] = mapped_column(Text)
+    engine_version: Mapped[str] = mapped_column(String(20))
+    config_hash: Mapped[str] = mapped_column(String(16))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
+
+
 class LlmCache(Base):
     __tablename__ = "llm_cache"
     key: Mapped[str] = mapped_column(String(64), primary_key=True)
