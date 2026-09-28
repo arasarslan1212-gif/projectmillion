@@ -348,7 +348,7 @@ class SyntheticServer:
                                 add(k, None, e0, v, f, "FY", fy)
                         debt = inst.get("debt_current", 0.0) + inst.get("debt_noncurrent", 0.0)
                         if debt > 0 and co.spec.kind != "bank" and y == fy:
-                            w = _seeded("ladder", co.ticker, y).dirichlet([2, 2, 2, 2, 2, 6])
+                            w = _seeded("ladder", co.ticker, y).dirichlet([1.0, 1.2, 1.5, 1.5, 1.5, 9.0])
                             if co.ticker == "ZZSML":
                                 w = np.array([0.7, 0.3, 0, 0, 0, 0])  # a wall of debt due soon
                             for key, share in zip(

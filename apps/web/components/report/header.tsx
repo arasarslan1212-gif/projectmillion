@@ -68,7 +68,8 @@ export function ReportHeader({
   const target = headline?.target;
   const conf = headline?.confidence;
   const cons = headline?.consensus;
-  const pending = headlineError ? <span className="text-muted">Unavailable</span> : null;
+  // Once the headline section has loaded, a null item means "not available" (never a spinner forever).
+  const pending = headlineError || headline ? <span className="text-muted">Not available</span> : null;
 
   return (
     <div className="py-3">

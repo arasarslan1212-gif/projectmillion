@@ -13,12 +13,16 @@ import { ReportHeader } from "./header";
 import { SnapshotStats } from "./overview";
 import { OverviewSection } from "./overview-section";
 import { PeersSection } from "./peers";
+import { RiskSection } from "./risk";
+import { TrustSection } from "./trust";
 
 const NAV = [
   { id: "snapshot", label: "Snapshot" },
   { id: "overview", label: "Overview" },
   { id: "chart", label: "Chart" },
+  { id: "trust", label: "Trust Rating" },
   { id: "fundamentals", label: "Fundamentals" },
+  { id: "risk", label: "Risk & red flags" },
   { id: "peers", label: "Peers" },
 ];
 
@@ -28,6 +32,9 @@ export function ReportPage({ ticker }: { ticker: string }) {
   const company = useSection(ticker, "company", version);
   const chart = useSection(ticker, "chart", version);
   const overview = useSection(ticker, "overview", version);
+  const headline = useSection(ticker, "headline", version);
+  const trust = useSection(ticker, "trust", version);
+  const risk = useSection(ticker, "risk", version);
   const fundamentals = useSection(ticker, "fundamentals", version);
   const [peerOverride, setPeerOverride] = useState<string[] | null>(null);
   const peers = useSection(
@@ -68,8 +75,8 @@ export function ReportPage({ ticker }: { ticker: string }) {
       <div className="sticky top-0 z-30 -mx-4 border-b border-line bg-page/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-page/80">
         <ReportHeader
           company={company.data}
-          headline={null}
-          headlineError="not yet available"
+          headline={headline.data}
+          headlineError={headline.error}
           onRefresh={refresh}
           refreshing={refreshing}
         />
@@ -127,6 +134,17 @@ export function ReportPage({ ticker }: { ticker: string }) {
           )}
         </SectionShell>
         <SectionShell
+          id="trust"
+          title="Trust Rating"
+          subtitle="The app's own rating of business strength, reliability and valuation relative to the sector"
+          data={trust.data}
+          loading={trust.loading}
+          error={trust.error}
+          skeletonHeight="h-80"
+        >
+          {trust.data && <TrustSection t={trust.data} />}
+        </SectionShell>
+        <SectionShell
           id="fundamentals"
           title="Fundamentals"
           subtitle="Statements, ratios, growth, quality and sector KPIs from SEC filings"
@@ -136,6 +154,15 @@ export function ReportPage({ ticker }: { ticker: string }) {
           skeletonHeight="h-72"
         >
           {fundamentals.data && <FundamentalsSection f={fundamentals.data} />}
+        </SectionShell>
+        <SectionShell
+          id="risk"
+          title="Risk & red flags"
+          data={risk.data}
+          loading={risk.loading}
+          error={risk.error}
+        >
+          {risk.data && <RiskSection r={risk.data} />}
         </SectionShell>
         <SectionShell id="peers" title="Peers" data={peers.data} loading={peers.loading} error={peers.error}>
           {peers.data && (

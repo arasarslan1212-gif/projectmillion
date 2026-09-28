@@ -257,3 +257,36 @@ rate_base_growth:
 capex_to_dna:
   label: Capex / depreciation
   definition: Capital spending relative to depreciation; above 1× means the asset base is growing.
+
+# ---- risk ------------------------------------------------------------------------------
+volatility_1y:
+  label: Realized volatility (1 year)
+  definition: Annualized standard deviation of daily log returns over the past year.
+  formula: stdev(daily log returns) × √252
+  plain: How much the price typically swings over a year.
+downside_deviation:
+  label: Downside deviation
+  definition: Like volatility, but counting only down days, annualized.
+max_drawdown_3y:
+  label: Max drawdown (3 years)
+  definition: Largest peak-to-trough fall in total-return price over three years.
+  plain: The worst loss someone who bought at a peak would have seen.
+max_drawdown_all:
+  label: Max drawdown (full history)
+  definition: Largest peak-to-trough fall over the full price history loaded.
+current_drawdown:
+  label: Current drawdown
+  definition: How far the price is below its previous all-time high in the loaded history.
+var_95:
+  label: 1-day value at risk (95%)
+  definition: Historical one-day loss exceeded on about 5% of days in the past year.
+  formula: −5th percentile of daily returns (1 year)
+corr_market:
+  label: Correlation with the market
+  definition: Correlation of daily log returns with the market benchmark over one year.
+corr_sector:
+  label: Correlation with the sector
+  definition: Correlation of daily log returns with the sector ETF proxy over one year.
+avg_dollar_volume:
+  label: Average daily dollar volume
+  definition: Average of price × volume over the last 63 sessions; a liquidity measure.

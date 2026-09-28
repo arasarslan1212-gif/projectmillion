@@ -32,6 +32,8 @@ pit:
   # SEC frames carry no filing date; in point-in-time mode a calendar-year frame is only
   # used once this many days have passed since the year ended (conservative filing lag).
   frames_filing_lag_days: 120
+  # FINRA publishes short interest about 8 business days after the settlement date.
+  short_interest_lag_days: 12
 
 benchmarks:
   market: SPY
@@ -176,3 +178,168 @@ peers:
   min_peers_for_percentiles: 8
   # Size similarity: prefer peers within this factor of the company's revenue.
   size_band: 10.0
+
+# ---------------------------------------------------------------------------------------
+# Trust Rating: how strong, reliable and reasonably priced the business is relative to its
+# sector. It is not a buy/sell recommendation. Scores are 0–100 (higher is better).
+# ---------------------------------------------------------------------------------------
+trust_rating:
+  # Metrics are scored as sector percentiles (winsorized at the 1st/99th percentile) when the SEC
+  # industry universe has at least `min_universe` values; otherwise they are mapped linearly between
+  # their `anchors` [value scoring 0, value scoring 100] and clipped. Composite scores with published
+  # thresholds (Altman, Piotroski, Beneish) always use anchors.
+  min_universe: 8
+  grade_bands: [[90, "A+"], [85, "A"], [80, "A-"], [75, "B+"], [70, "B"], [65, "B-"], [60, "C+"], [55, "C"], [50, "C-"], [40, "D"], [0, "F"]]
+  pillar_labels:
+    financial_health: Financial health
+    earnings_quality: Earnings quality
+    profitability: Profitability & moat
+    growth: Growth
+    valuation: Valuation
+    momentum: Momentum & technicals
+    sentiment: Sentiment
+    analyst: Analyst conviction
+    management: Management credibility
+    risk: Risk
+  weights:
+    default: {financial_health: 0.14, earnings_quality: 0.12, profitability: 0.15, growth: 0.11, valuation: 0.14, momentum: 0.07, sentiment: 0.06, analyst: 0.06, management: 0.05, risk: 0.10}
+    bank: {financial_health: 0.18, earnings_quality: 0.08, profitability: 0.18, growth: 0.08, valuation: 0.14, momentum: 0.07, sentiment: 0.06, analyst: 0.06, management: 0.05, risk: 0.10}
+    insurer: {financial_health: 0.17, earnings_quality: 0.09, profitability: 0.17, growth: 0.08, valuation: 0.14, momentum: 0.07, sentiment: 0.06, analyst: 0.06, management: 0.06, risk: 0.10}
+    reit: {financial_health: 0.18, earnings_quality: 0.08, profitability: 0.14, growth: 0.10, valuation: 0.16, momentum: 0.07, sentiment: 0.05, analyst: 0.06, management: 0.05, risk: 0.11}
+    utility: {financial_health: 0.18, earnings_quality: 0.10, profitability: 0.13, growth: 0.08, valuation: 0.16, momentum: 0.06, sentiment: 0.05, analyst: 0.06, management: 0.06, risk: 0.12}
+    growth_unprofitable: {financial_health: 0.16, earnings_quality: 0.10, profitability: 0.08, growth: 0.20, valuation: 0.10, momentum: 0.08, sentiment: 0.06, analyst: 0.07, management: 0.05, risk: 0.10}
+    biotech_pipeline: {financial_health: 0.22, earnings_quality: 0.06, profitability: 0.04, growth: 0.08, valuation: 0.08, momentum: 0.10, sentiment: 0.08, analyst: 0.10, management: 0.06, risk: 0.18}
+  # Metric lists per pillar. A profile key overrides `default` for that pillar.
+  pillars:
+    financial_health:
+      default: [net_debt_to_ebitda, interest_coverage, current_ratio, debt_to_equity, altman_z]
+      bank: [equity_to_assets, loan_to_deposit]
+      insurer: [equity_to_assets, debt_to_equity]
+      financial_other: [equity_to_assets, debt_to_equity]
+      reit: [net_debt_to_ebitda, interest_coverage, debt_to_assets]
+      utility: [net_debt_to_ebitda, interest_coverage, debt_to_equity]
+    earnings_quality:
+      default: [accruals_ratio, fcf_conversion, beneish_m, sbc_pct_revenue, gaap_adjusted_gap, piotroski_f]
+      bank: [gaap_adjusted_gap, sbc_pct_revenue]
+      insurer: [gaap_adjusted_gap, sbc_pct_revenue]
+      financial_other: [gaap_adjusted_gap, sbc_pct_revenue]
+      reit: [accruals_ratio, gaap_adjusted_gap]
+    profitability:
+      default: [roic, roic_minus_wacc, gross_margin, operating_margin, margin_stability, roic_persistence]
+      bank: [rotce, roe, efficiency_ratio, nim]
+      insurer: [roe, combined_ratio]
+      financial_other: [roe, net_margin]
+      reit: [ffo_margin, operating_margin, roe]
+      utility: [roe, operating_margin, margin_stability]
+    growth:
+      default: [revenue_growth, revenue_cagr_3y, eps_cagr_3y, fcf_cagr_3y, estimate_revision]
+      bank: [revenue_growth, revenue_cagr_3y, eps_cagr_3y, estimate_revision]
+      reit: [revenue_growth, revenue_cagr_3y, ffo_per_share_cagr_3y, estimate_revision]
+    valuation:
+      default: [pe_vs_peers, ev_ebitda_vs_peers, ev_sales_vs_peers, p_fcf_vs_peers, pe_vs_history, dcf_upside]
+      bank: [pe_vs_peers, pb_vs_peers, pe_vs_history, model_upside]
+      insurer: [pe_vs_peers, pb_vs_peers, pe_vs_history, model_upside]
+      financial_other: [pe_vs_peers, pb_vs_peers, pe_vs_history, model_upside]
+      reit: [p_ffo_vs_history, ev_ebitda_vs_peers, model_upside]
+      utility: [pe_vs_peers, ev_ebitda_vs_peers, pe_vs_history, model_upside]
+      growth_unprofitable: [ev_sales_vs_peers, ev_sales_vs_history, model_upside]
+      biotech_pipeline: [ev_sales_vs_peers, model_upside]
+    momentum:
+      default: [momentum_12_1, rel_strength_6m, trend_score]
+    sentiment:
+      default: [news_sentiment_30d, insider_net_buying, short_interest_pct_float, days_to_cover]
+    analyst:
+      default: [upside_trusted_consensus, trust_weighted_rating, estimate_revision]
+    management:
+      default: [guidance_hit_rate]
+    risk:
+      default: [volatility_1y, max_drawdown_3y, beta, downside_deviation]
+  # direction: higher|lower is better. anchors: [value scoring 0, value scoring 100].
+  # universe: the key in the SEC-frames universe ratios used for sector percentiles (if any).
+  metrics:
+    net_debt_to_ebitda: {label: "Net debt / EBITDA", unit: x, direction: lower, anchors: [5.0, 0.0], universe: net_debt_to_ebitda}
+    interest_coverage: {label: "Interest coverage", unit: x, direction: higher, anchors: [1.0, 15.0], universe: interest_coverage}
+    current_ratio: {label: "Current ratio", unit: x, direction: higher, anchors: [0.7, 2.5], universe: current_ratio}
+    debt_to_equity: {label: "Debt / equity", unit: x, direction: lower, anchors: [3.0, 0.0], universe: debt_to_equity}
+    debt_to_assets: {label: "Debt / assets", unit: pct, direction: lower, anchors: [0.7, 0.2], universe: debt_to_assets}
+    equity_to_assets: {label: "Equity / assets", unit: pct, direction: higher, anchors: [0.05, 0.14], universe: equity_to_assets}
+    loan_to_deposit: {label: "Loans / deposits", unit: pct, direction: lower, anchors: [1.1, 0.6], universe: loan_to_deposit}
+    altman_z: {label: "Altman Z", unit: ratio, direction: higher, anchors: [1.8, 3.5]}
+    accruals_ratio: {label: "Accruals ratio", unit: pct, direction: lower, anchors: [0.10, -0.08], universe: accruals_ratio}
+    fcf_conversion: {label: "FCF conversion", unit: pct, direction: higher, anchors: [0.2, 1.2], universe: fcf_conversion}
+    beneish_m: {label: "Beneish M-score", unit: ratio, direction: lower, anchors: [-1.5, -3.0]}
+    piotroski_f: {label: "Piotroski F-score", unit: score, direction: higher, anchors: [1, 8]}
+    sbc_pct_revenue: {label: "Stock comp % of revenue", unit: pct, direction: lower, anchors: [0.15, 0.0], universe: sbc_pct_revenue}
+    gaap_adjusted_gap: {label: "Adjusted vs. GAAP EPS gap", unit: pct, direction: lower, anchors: [0.6, 0.0]}
+    roic: {label: "ROIC", unit: pct, direction: higher, anchors: [-0.05, 0.30], universe: roic}
+    roic_minus_wacc: {label: "ROIC − WACC", unit: pct, direction: higher, anchors: [-0.08, 0.15]}
+    gross_margin: {label: "Gross margin", unit: pct, direction: higher, anchors: [0.1, 0.7], universe: gross_margin}
+    operating_margin: {label: "Operating margin", unit: pct, direction: higher, anchors: [-0.1, 0.35], universe: operating_margin}
+    net_margin: {label: "Net margin", unit: pct, direction: higher, anchors: [-0.05, 0.3], universe: net_margin}
+    margin_stability: {label: "Operating-margin volatility (8y std)", unit: pct, direction: lower, anchors: [0.10, 0.01]}
+    roic_persistence: {label: "ROIC variability (8y std ÷ mean)", unit: ratio, direction: lower, anchors: [1.0, 0.1]}
+    roe: {label: "Return on equity", unit: pct, direction: higher, anchors: [0.0, 0.22], universe: roe}
+    rotce: {label: "Return on tangible common equity", unit: pct, direction: higher, anchors: [0.04, 0.20], universe: rotce}
+    efficiency_ratio: {label: "Efficiency ratio", unit: pct, direction: lower, anchors: [0.80, 0.45], universe: efficiency_ratio}
+    nim: {label: "Net interest margin", unit: pct, direction: higher, anchors: [0.015, 0.04], universe: nim}
+    combined_ratio: {label: "Combined ratio", unit: pct, direction: lower, anchors: [1.10, 0.85]}
+    ffo_margin: {label: "FFO margin", unit: pct, direction: higher, anchors: [0.2, 0.7], universe: ffo_margin}
+    revenue_growth: {label: "Revenue growth (latest year)", unit: pct, direction: higher, anchors: [-0.10, 0.25], universe: revenue_growth}
+    revenue_cagr_3y: {label: "Revenue CAGR (3y)", unit: pct, direction: higher, anchors: [-0.05, 0.20]}
+    eps_cagr_3y: {label: "EPS CAGR (3y)", unit: pct, direction: higher, anchors: [-0.10, 0.25]}
+    fcf_cagr_3y: {label: "FCF CAGR (3y)", unit: pct, direction: higher, anchors: [-0.10, 0.25]}
+    ffo_per_share_cagr_3y: {label: "FFO per share CAGR (3y)", unit: pct, direction: higher, anchors: [-0.05, 0.10]}
+    estimate_revision: {label: "EPS estimate revision (90 days)", unit: pct, direction: higher, anchors: [-0.08, 0.08]}
+    pe_vs_peers: {label: "P/E vs. peer median", unit: x, direction: lower, anchors: [2.0, 0.5]}
+    ev_ebitda_vs_peers: {label: "EV/EBITDA vs. peer median", unit: x, direction: lower, anchors: [2.0, 0.5]}
+    ev_sales_vs_peers: {label: "EV/Sales vs. peer median", unit: x, direction: lower, anchors: [2.5, 0.4]}
+    p_fcf_vs_peers: {label: "P/FCF vs. peer median", unit: x, direction: lower, anchors: [2.0, 0.5]}
+    pb_vs_peers: {label: "P/B vs. peer median", unit: x, direction: lower, anchors: [2.0, 0.5]}
+    pe_vs_history: {label: "P/E vs. own 5-year history (z)", unit: ratio, direction: lower, anchors: [2.0, -2.0]}
+    ev_sales_vs_history: {label: "EV/Sales vs. own 5-year history (z)", unit: ratio, direction: lower, anchors: [2.0, -2.0]}
+    p_ffo_vs_history: {label: "P/FFO vs. own 5-year history (z)", unit: ratio, direction: lower, anchors: [2.0, -2.0]}
+    dcf_upside: {label: "Upside to the app's intrinsic value", unit: pct, direction: higher, anchors: [-0.4, 0.4]}
+    model_upside: {label: "Upside to the app's intrinsic value", unit: pct, direction: higher, anchors: [-0.4, 0.4]}
+    momentum_12_1: {label: "12-month momentum (skip last month)", unit: pct, direction: higher, anchors: [-0.30, 0.40]}
+    rel_strength_6m: {label: "6-month return vs. sector", unit: pct, direction: higher, anchors: [-0.20, 0.20]}
+    trend_score: {label: "Trend score (vs. 50/200-day averages)", unit: score, direction: higher, anchors: [0, 100]}
+    news_sentiment_30d: {label: "News sentiment (30 days)", unit: ratio, direction: higher, anchors: [-0.5, 0.5]}
+    insider_net_buying: {label: "Insider open-market net buying (6 months, % of market cap)", unit: pct, direction: higher, anchors: [-0.003, 0.003]}
+    short_interest_pct_float: {label: "Short interest % of float", unit: pct, direction: lower, anchors: [0.20, 0.01]}
+    days_to_cover: {label: "Days to cover", unit: days, direction: lower, anchors: [10, 1]}
+    upside_trusted_consensus: {label: "Upside to trusted analyst consensus", unit: pct, direction: higher, anchors: [-0.15, 0.30]}
+    trust_weighted_rating: {label: "Trust-weighted analyst rating (−1 sell … +1 buy)", unit: ratio, direction: higher, anchors: [-0.8, 0.8]}
+    guidance_hit_rate: {label: "Guidance met or beaten", unit: pct, direction: higher, anchors: [0.3, 0.9]}
+    volatility_1y: {label: "Volatility (1 year)", unit: pct, direction: lower, anchors: [0.70, 0.15]}
+    max_drawdown_3y: {label: "Max drawdown (3 years)", unit: pct, direction: higher, anchors: [-0.70, -0.10]}
+    beta: {label: "Beta", unit: ratio, direction: lower, anchors: [2.0, 0.5]}
+    downside_deviation: {label: "Downside deviation (1 year)", unit: pct, direction: lower, anchors: [0.50, 0.10]}
+  # Triggered red flags cap a pillar and deduct points from the overall rating (total capped).
+  max_total_deduction: 20
+  red_flag_penalties:
+    going_concern: {pillar: financial_health, cap: 20, overall: 10}
+    restatement: {pillar: earnings_quality, cap: 30, overall: 6}
+    beneish_m: {pillar: earnings_quality, cap: 40, overall: 3}
+    late_filing: {pillar: earnings_quality, cap: 50, overall: 3}
+    auditor_change: {pillar: earnings_quality, cap: 60, overall: 2}
+    altman_z: {pillar: financial_health, cap: 35, overall: 3}
+    cash_runway: {pillar: financial_health, cap: 30, overall: 4}
+    debt_wall: {pillar: financial_health, cap: 40, overall: 3}
+    interest_coverage: {pillar: financial_health, cap: 40, overall: 2}
+    dilution: {pillar: earnings_quality, cap: 60, overall: 2}
+    customer_concentration: {pillar: risk, cap: 65, overall: 1}
+    accruals: {pillar: earnings_quality, cap: 60, overall: 1}
+
+red_flags:
+  piotroski_low: 3
+  beneish_threshold: -1.78
+  accruals_high: 0.10
+  customer_concentration_pct: 10
+  customer_concentration_high_pct: 20
+  dilution_medium: 0.05
+  dilution_high: 0.10
+  working_capital_gap: 0.15
+  interest_coverage_low: 1.5
+  runway_years: 1.5
+  debt_wall_share: 0.20
+  debt_wall_share_high: 0.35

@@ -251,7 +251,6 @@ const MARGIN_NAMES: Record<string, string> = {
 };
 
 function MarginsChart({ f }: { f: AnySection }) {
-  const names = MARGIN_NAMES;
   const r = f.ratios;
   const keys = ["gross_margin", "operating_margin", "net_margin", "fcf_margin"];
   const rows = keys.map((k) => r.rows.find((x: AnySection) => x.key === k)).filter(Boolean);
@@ -272,7 +271,7 @@ function MarginsChart({ f }: { f: AnySection }) {
         axisLabel: { color: c.muted, formatter: (v: number) => formatValue(v, "pct", { digits: 0 }) },
       },
       series: rows.map((row: AnySection, i: number) => ({
-        name: names[row.key],
+        name: MARGIN_NAMES[row.key],
         type: "line",
         data: row.values,
         lineStyle: { width: 2, color: c.series[i] },
@@ -280,7 +279,7 @@ function MarginsChart({ f }: { f: AnySection }) {
         symbol: "circle",
         symbolSize: 6,
         connectNulls: false,
-        endLabel: { show: true, formatter: names[row.key], color: c.ink2, fontSize: 11 },
+        endLabel: { show: true, formatter: MARGIN_NAMES[row.key], color: c.ink2, fontSize: 11 },
       })),
       grid: { left: 8, right: 70, top: 28, bottom: 8, containLabel: true },
     }),
@@ -296,7 +295,7 @@ function MarginsChart({ f }: { f: AnySection }) {
         build={build}
         table={{
           caption: "Margins by fiscal year",
-          columns: ["Year", ...rows.map((x: AnySection) => names[x.key])],
+          columns: ["Year", ...rows.map((x: AnySection) => MARGIN_NAMES[x.key])],
           rows: r.columns.map((col: string, i: number) => [
             col,
             ...rows.map((x: AnySection) => formatValue(x.values[i], "pct")),

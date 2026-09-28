@@ -58,3 +58,12 @@ Working name "Candor" (fits the honesty-first product). Rename it in `apps/web/l
 
 ### D-016: Every indicator is computed in the engine
 SMA/EMA/Bollinger/RSI/MACD are computed in Python and sent with the chart data, so the browser only draws. The price chart's "% compare" mode uses the chart library's percentage scale, which rebases each displayed series to its first visible value. That is display scaling, not a new figure.
+
+### D-017: Sector percentiles compare trailing-twelve-month values with industry calendar-year values
+The Trust Rating scores the company's latest trailing-twelve-month ratios against the industry distribution from the latest complete calendar year of SEC frames. This mixes periods by up to a year, but keeps the rating responsive to recent quarters; comparing the company's own stale calendar-year value would hide them. The peer table (M2) uses the same calendar-year basis for every row, so it stays strictly comparable. Both notes appear in the UI.
+
+### D-018: Composite accounting scores use published thresholds, not percentiles
+Altman Z, Piotroski F and Beneish M are scored against anchors derived from their published thresholds, because those thresholds carry the meaning. The right Altman variant is chosen automatically: the original Z for manufacturers (SIC 2000–3999), Z'' for other non-financial companies, and none for banks, insurers and REITs.
+
+### D-019: Red flags cap pillars and deduct points, with a cap on the total deduction
+A triggered red flag caps its pillar (e.g. going-concern language caps Financial health at 20) and deducts a documented number of points from the overall rating. Total deductions are capped at 20 points, so the pillar evidence still dominates. Every check lists whether it fired, passed or could not run, so "no flags" is never confused with "not checked".
