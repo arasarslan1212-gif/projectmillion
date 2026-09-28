@@ -843,7 +843,9 @@ class SyntheticServer:
                         "newsTitle": f"[Synthetic] {a['firm']} sets {sym} target at {a['target']}",
                         "analystName": a["analyst"],
                         "priceTarget": a["target"],
-                        "adjPriceTarget": a["target"],
+                        "adjPriceTarget": round(
+                            a["target"] / self.w.split_factor_after(self.w.companies[sym], a["date"]), 2
+                        ),
                         "priceWhenPosted": a["price"],
                         "newsPublisher": "Example Business News",
                         "newsBaseURL": "example.com",

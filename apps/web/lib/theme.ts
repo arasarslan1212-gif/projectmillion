@@ -17,6 +17,9 @@ export interface ThemeColors {
   serious: string;
   series: string[];
   synthetic: string;
+  divergeNeg: string;
+  divergeMid: string;
+  divergePos: string;
 }
 
 function read(): ThemeColors {
@@ -37,6 +40,9 @@ function read(): ThemeColors {
     serious: v("--serious"),
     series: [1, 2, 3, 4, 5, 6, 7, 8].map((i) => v(`--s${i}`)),
     synthetic: v("--synthetic"),
+    divergeNeg: v("--diverge-neg"),
+    divergeMid: v("--diverge-mid"),
+    divergePos: v("--diverge-pos"),
   };
 }
 

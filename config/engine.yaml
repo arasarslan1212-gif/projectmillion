@@ -350,6 +350,44 @@ red_flags:
 # ---------------------------------------------------------------------------------------
 # Valuation engine (see DECISIONS D-002, D-003)
 # ---------------------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------------------
+# Wall Street analysts: who to trust. Every call (a target and/or rating on a date) is scored
+# only once its horizon has passed, using prices up to the report date (point-in-time).
+analysts:
+  stale_months: 6                 # targets older than this are greyed out and excluded from consensus
+  # Targets more than this factor above or below the median active target are treated as likely data
+  # errors (e.g. an unadjusted split): flagged and excluded from both consensus figures.
+  outlier_factor: 3.0
+  rating_stale_months: 12         # ratings older than this drop out of the rating distribution
+  grade_join_days: 3              # a firm grade within ± this many days supplies the rating for a target
+  horizons: {3m: 63, 6m: 126, 12m: 252}   # trading days
+  # When a call has no rating, its direction comes from the target: ≥ +10% implies Buy, ≤ −10% Sell.
+  implied_direction_threshold: 0.10
+  recency_half_life_years: 3.0
+  # Bayesian shrinkage: prior strength in (recency-weighted) calls. A metric estimated from n calls
+  # is (n × own + k × prior) ÷ (n + k). Ticker scope shrinks toward the analyst's sector scope,
+  # sector toward the analyst's all-stock scope, and that toward the average analyst.
+  shrinkage_k: 15
+  score_weights: {hit_rate: 0.30, accuracy: 0.25, directional: 0.35, bias: 0.10}
+  directional_horizon_weights: {3m: 0.25, 6m: 0.35, 12m: 0.40}
+  anchors:                        # [value scoring 0, value scoring 100]
+    hit_rate: [0.30, 0.80]
+    mape: [0.45, 0.10]
+    directional: [-0.08, 0.08]
+    optimism_bias: [0.25, 0.0]
+  # Trusted consensus: each active target weighted by (Trust Score ÷ 100) ^ gamma.
+  trusted_weight_gamma: 2.0
+  min_scored_calls_label: 5       # below this, the table shows "limited history"
+  # Analysts' cross-stock history comes from the local database. Every report ingests the subject
+  # and its peers; the nightly job ingests this universe as well.
+  universe: index_members
+  synthetic_universe: [ZZTEC, ZZBNK, ZZREI, ZZGRO, ZZUTL, ZZSML]
+  history_months: 24              # rating distribution and target-revision charts
+  # Cards are ordered with these firms first, then any others covering the stock.
+  major_firms: [Goldman Sachs, Morgan Stanley, JPMorgan, J.P. Morgan, Bank of America, BofA Securities, Citigroup,
+                Citi, Wells Fargo, UBS, Barclays, Deutsche Bank]
+
 valuation:
   horizon_months: 12
   # Share of the log-gap between price and intrinsic value assumed to close within 12 months.

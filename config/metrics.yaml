@@ -378,3 +378,65 @@ confidence:
     in the engine config and capped for some profiles (pre-revenue biotech, unprofitable growth).
   formula: "Σ wᵢ × componentᵢ, capped by profile; High ≥ 70, Medium ≥ 40, Low < 40"
   plain: How sure the model is. Low confidence means a wide range and a target you should lean on less.
+
+# ---- Analysts (M5) ----
+consensus_all:
+  label: All-analyst consensus target
+  definition: >-
+    Plain average of the latest price target from every analyst (or firm, when analysts are not named) whose
+    target is no older than the stale cutoff (default 6 months). Older targets are excluded.
+  formula: mean of active targets
+  plain: The average target of analysts who have updated their view recently.
+consensus_median:
+  label: Median analyst target
+  definition: Median of the active (non-stale) analyst targets; less sensitive to one extreme target than the average.
+  formula: median of active targets
+consensus_trusted:
+  label: Trusted consensus target
+  definition: >-
+    Average of the active targets weighted by each analyst's Trust Score raised to a power (default 2), so analysts
+    with better scored records count more. Analysts without a scored record get the average analyst's score.
+  formula: "Σ (Trust Score ÷ 100)^γ × target ÷ Σ (Trust Score ÷ 100)^γ"
+  plain: The analyst average, tilted toward the analysts whose past targets held up best.
+upside_consensus_all:
+  label: Upside to all-analyst consensus
+  definition: Percentage difference between the all-analyst consensus target and today's price.
+  formula: consensus ÷ price − 1
+upside_trusted_consensus:
+  label: Upside to trusted consensus
+  definition: Percentage difference between the trusted (Trust Score-weighted) consensus target and today's price.
+  formula: trusted consensus ÷ price − 1
+  plain: How far the better-track-record analysts think the price could move.
+trust_weighted_rating:
+  label: Trust-weighted analyst rating
+  definition: >-
+    Average of current ratings mapped to +1 (Buy and equivalents), 0 (Hold) and −1 (Sell), weighted like the trusted
+    consensus. Labels: ≥ 0.5 Buy, ≥ 0.15 Moderate buy, > −0.15 Hold, > −0.5 Moderate sell, otherwise Sell.
+  formula: "Σ wᵢ × ratingᵢ ÷ Σ wᵢ, rating ∈ {−1, 0, +1}"
+  plain: Where analysts lean overall, counting better analysts more. This is their view, not the app's.
+average_rating:
+  label: Average analyst rating
+  definition: Unweighted average of current ratings mapped to +1 (Buy), 0 (Hold) and −1 (Sell).
+  formula: "(buys − sells) ÷ number of ratings"
+target_dispersion:
+  label: Target dispersion
+  definition: Spread of active analyst targets relative to their average. High dispersion means analysts disagree.
+  formula: (highest − lowest active target) ÷ mean active target
+  plain: How much analysts disagree about where the price is going.
+n_active_targets:
+  label: Active targets
+  definition: Number of analysts (or firms) with a price target newer than the stale cutoff.
+target_high:
+  label: Highest active target
+  definition: Highest price target among active (non-stale) analyst targets.
+target_low:
+  label: Lowest active target
+  definition: Lowest price target among active (non-stale) analyst targets.
+analyst_trust_score:
+  label: Analyst Trust Score
+  definition: >-
+    0–100 score of an analyst's (or firm's) scored record: how often targets were reached within 12 months (30%),
+    mean absolute error at 12 months (25%), excess return of Buy/Sell calls vs. the market and sector fund at 3, 6 and
+    12 months (35%), and always-bullish bias (10%). Recent calls count more, and small samples are shrunk toward
+    broader records and the average analyst so a short lucky streak cannot outrank a long good record.
+  plain: How well this analyst's past calls actually worked out, adjusted for how many calls there are to judge.

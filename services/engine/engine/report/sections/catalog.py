@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from engine.report.sections import (
+    analysts,
     chart,
     company,
     fundamentals,
@@ -21,6 +22,7 @@ SECTIONS = [
     ("chart", chart.build),
     ("trust", trust.build),
     ("valuation", valuation.build),
+    ("analysts", analysts.build),
     ("fundamentals", fundamentals.build),
     ("risk", risk.build),
     ("peers", peers.build),

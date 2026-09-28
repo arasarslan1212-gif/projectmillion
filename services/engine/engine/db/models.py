@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 
 from sqlalchemy import (
     JSON,
@@ -17,6 +17,11 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+
+def _utcnow() -> datetime:
+    """Naive UTC timestamp (columns are timezone-naive and always hold UTC)."""
+    return datetime.now(UTC).replace(tzinfo=None)
 
 
 class Base(DeclarativeBase):
@@ -35,7 +40,7 @@ class Company(Base):
     industry: Mapped[str | None] = mapped_column(String(200))
     profile_json: Mapped[dict | None] = mapped_column(JSON)
     is_synthetic: Mapped[bool] = mapped_column(Boolean, default=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
 
 
 class Price(Base):
@@ -124,6 +129,7 @@ class AnalystActionRow(Base):
     target_prior: Mapped[float | None] = mapped_column(Float)
     price_when_posted: Mapped[float | None] = mapped_column(Float)
     url: Mapped[str | None] = mapped_column(Text)
+    headline: Mapped[str | None] = mapped_column(Text)  # provider headline, shown only as a link title
     source: Mapped[str] = mapped_column(String(60))
     source_uid: Mapped[str] = mapped_column(String(80), unique=True)
 
@@ -140,7 +146,7 @@ class _ScoreCols:
     herding: Mapped[float | None] = mapped_column(Float)
     raw_score: Mapped[float | None] = mapped_column(Float)
     trust_score: Mapped[float | None] = mapped_column(Float)
-    computed_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    computed_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
     config_hash: Mapped[str] = mapped_column(String(16))
 
 
@@ -164,7 +170,7 @@ class NewsRow(Base):
     url: Mapped[str] = mapped_column(Text)
     provider: Mapped[str] = mapped_column(String(40))
     cluster_id: Mapped[str | None] = mapped_column(String(40))
-    fetched_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    fetched_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
     __table_args__ = (UniqueConstraint("ticker", "url", name="uq_news_url"),)
 
 
@@ -178,7 +184,7 @@ class NewsAnalysis(Base):
     materiality: Mapped[str | None] = mapped_column(String(10))
     event_type: Mapped[str | None] = mapped_column(String(40))
     input_hash: Mapped[str] = mapped_column(String(64))
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
 
 
 class InsiderTx(Base):
@@ -294,7 +300,7 @@ class SnapshotOutcome(Base):
     abs_pct_err: Mapped[float] = mapped_column(Float)
     realized_up: Mapped[bool] = mapped_column(Boolean)
     brier: Mapped[float | None] = mapped_column(Float)
-    scored_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    scored_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
 
 
 class LlmCache(Base):
@@ -306,7 +312,7 @@ class LlmCache(Base):
     output_tokens: Mapped[int] = mapped_column(Integer, default=0)
     cost_usd: Mapped[float] = mapped_column(Float, default=0.0)
     output_json: Mapped[dict | list | None] = mapped_column(JSON)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
 
 
 class LlmCostLog(Base):
@@ -321,13 +327,13 @@ class LlmCostLog(Base):
     cost_usd: Mapped[float] = mapped_column(Float)
     cached: Mapped[bool] = mapped_column(Boolean)
     validator_failures: Mapped[int] = mapped_column(Integer, default=0)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
 
 
 class WatchlistItem(Base):
     __tablename__ = "watchlist"
     ticker: Mapped[str] = mapped_column(String(16), primary_key=True)
-    added_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    added_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
 
 
 class Alert(Base):
@@ -336,7 +342,7 @@ class Alert(Base):
     ticker: Mapped[str] = mapped_column(String(16), index=True)
     kind: Mapped[str] = mapped_column(String(40))
     params_json: Mapped[dict | None] = mapped_column(JSON)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
     last_fired_at: Mapped[datetime | None] = mapped_column(DateTime)
     enabled: Mapped[bool] = mapped_column(Boolean, default=True)
 
@@ -346,6 +352,6 @@ class AlertEvent(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     alert_id: Mapped[int] = mapped_column(Integer, index=True)
     ticker: Mapped[str] = mapped_column(String(16))
-    fired_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    fired_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
     message: Mapped[str] = mapped_column(Text)
     seen: Mapped[bool] = mapped_column(Boolean, default=False)

@@ -5,7 +5,7 @@ ENGINE := services/engine
 WEB := apps/web
 PY := $(ENGINE)/.venv/bin/python
 
-.PHONY: setup dev engine web test test-engine test-web lint fmt typecheck migrate record-fixtures clean
+.PHONY: setup dev engine web test test-engine test-web lint fmt typecheck migrate record-fixtures score-analysts clean
 
 setup:
 	cd $(ENGINE) && uv venv --python 3.12 -q .venv && uv sync -q
@@ -48,6 +48,9 @@ migrate:
 
 record-fixtures: ## needs network + keys: DATA_TIER=starter FMP_API_KEY=... make record-fixtures
 	DATA_MODE=record $(PY) scripts/record_fixtures.py
+
+score-analysts: ## run the nightly analyst ingestion + scoring job once
+	cd $(ENGINE) && .venv/bin/python -c "from engine.jobs.tasks import score_analysts; import logging; logging.basicConfig(level=logging.INFO); score_analysts()"
 
 clean:
 	rm -rf $(WEB)/.next $(ENGINE)/.pytest_cache $(ENGINE)/dev.db*

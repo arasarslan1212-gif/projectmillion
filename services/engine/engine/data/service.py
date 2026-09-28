@@ -629,6 +629,7 @@ class DataService:
                             target_prior=a.target_prior,
                             price_when_posted=a.price_when_posted,
                             url=a.url,
+                            headline=a.headline,
                             source=a.source,
                             source_uid=a.source_uid,
                         )

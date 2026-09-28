@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { PriceChart } from "@/components/charts/price-chart";
 import { MissingNote, SectionShell } from "@/components/report/section-shell";
 import { getJSON, useSection } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { DISCLAIMER_SHORT } from "@/lib/legal";
 import { pushRecent } from "@/lib/recent";
+import { AnalystsSection } from "./analysts";
 import { FundamentalsSection } from "./fundamentals";
 import { ReportHeader } from "./header";
 import { SnapshotStats } from "./overview";
@@ -23,6 +24,7 @@ const NAV = [
   { id: "chart", label: "Chart" },
   { id: "trust", label: "Trust Rating" },
   { id: "valuation", label: "Price target" },
+  { id: "analysts", label: "Analysts" },
   { id: "fundamentals", label: "Fundamentals" },
   { id: "risk", label: "Risk & red flags" },
   { id: "peers", label: "Peers" },
@@ -37,6 +39,7 @@ export function ReportPage({ ticker }: { ticker: string }) {
   const headline = useSection(ticker, "headline", version);
   const trust = useSection(ticker, "trust", version);
   const valuation = useSection(ticker, "valuation", version);
+  const analysts = useSection(ticker, "analysts", version);
   const risk = useSection(ticker, "risk", version);
   const fundamentals = useSection(ticker, "fundamentals", version);
   const [peerOverride, setPeerOverride] = useState<string[] | null>(null);
@@ -45,6 +48,23 @@ export function ReportPage({ ticker }: { ticker: string }) {
     "peers",
     version,
     peerOverride ? `peers=${encodeURIComponent(peerOverride.join(","))}` : "",
+  );
+
+  const high52 = company.data?.stats?.high_52w?.value;
+  const low52 = company.data?.stats?.low_52w?.value;
+  const cone = valuation.data?.cone;
+  const consAll = analysts.data?.consensus_all;
+  const consTrusted = analysts.data?.consensus_trusted;
+  const chartTargets = analysts.data?.chart_targets;
+  const overlays = useMemo(
+    () => ({
+      high52,
+      low52,
+      cone: cone ?? null,
+      consensus: consAll || consTrusted ? { all: consAll, trusted: consTrusted } : null,
+      analystTargets: chartTargets ?? [],
+    }),
+    [high52, low52, cone, consAll, consTrusted, chartTargets],
   );
 
   useEffect(() => {
@@ -125,17 +145,7 @@ export function ReportPage({ ticker }: { ticker: string }) {
           error={chart.error}
           skeletonHeight="h-96"
         >
-          {chart.data && (
-            <PriceChart
-              chart={chart.data}
-              ticker={ticker.toUpperCase()}
-              overlays={{
-                high52: company.data?.stats?.high_52w?.value,
-                low52: company.data?.stats?.low_52w?.value,
-                cone: valuation.data?.cone ?? null,
-              }}
-            />
-          )}
+          {chart.data && <PriceChart chart={chart.data} ticker={ticker.toUpperCase()} overlays={overlays} />}
         </SectionShell>
         <SectionShell
           id="trust"
@@ -162,8 +172,24 @@ export function ReportPage({ ticker }: { ticker: string }) {
               v={valuation.data}
               ticker={ticker}
               profile={company.data?.identity?.profile ?? "general"}
+              consensus={
+                analysts.data
+                  ? { all: analysts.data.consensus_all, trusted: analysts.data.consensus_trusted }
+                  : undefined
+              }
             />
           )}
+        </SectionShell>
+        <SectionShell
+          id="analysts"
+          title="Wall Street analysts: who to trust"
+          subtitle="Analysts' own targets and ratings, scored on how their past calls worked out"
+          data={analysts.data}
+          loading={analysts.loading}
+          error={analysts.error}
+          skeletonHeight="h-96"
+        >
+          {analysts.data && <AnalystsSection a={analysts.data} appTarget={valuation.data?.target?.p50} />}
         </SectionShell>
         <SectionShell
           id="fundamentals"

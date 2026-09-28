@@ -768,6 +768,7 @@ def _prov_price(spec: Spec, ni_ann: float, rev_ann: float, shares: float) -> flo
 
 class World:
     def __init__(self, seed: int = 20260925) -> None:
+        self.seed = seed
         self.rng = np.random.default_rng(seed)
         self.as_of = AS_OF
         self.days = bdays(START, AS_OF)
@@ -1156,7 +1157,8 @@ class World:
         return out
 
     def _analyst_actions(self) -> list[dict]:
-        rng = self.rng
+        # A dedicated stream, so tuning analyst behaviour never shifts the data generated after it.
+        rng = np.random.default_rng(self.seed + 7919)
         actions = []
         covered = [c for c in self.companies.values() if c.spec.coverage > 0]
         for co in covered:
@@ -1179,14 +1181,22 @@ class World:
                     j12 = min(j + 252, len(self.days) - 1)
                     p12 = self.price_on(co.ticker, self.days[j12])
                     span = max(1, j12 - j)
-                    fut = math.log(p12 / p) * (252 / span) if p12 else 0.0
+                    # Skill sees the next 12 months; near the end of the data only the part that exists
+                    # (never annualized from a short window).
+                    fut = math.log(p12 / p) * (252 / span if span >= 200 else 1.0) if p12 else 0.0
                     # herding: pull toward the recent consensus of others
-                    others = [x["target"] for x in actions[-40:] if x["ticker"] == co.ticker and x["target"]]
+                    others = [
+                        x["target_adj"] for x in actions[-40:] if x["ticker"] == co.ticker and x["target_adj"]
+                    ]
                     cons = float(np.mean(others[-6:])) if others else None
                     lt = a["bias"] + a["skill"] * fut + rng.normal(0, a["noise"])
                     target = p * math.exp(lt)
                     if cons and a["herding"] > 0:
                         target = (1 - a["herding"] * 0.5) * target + a["herding"] * 0.5 * cons
+                    target = min(
+                        max(target, 0.5 * p), 3.0 * p
+                    )  # published targets stay within 0.5×–3× the price
+                    target_adj = target
                     target = round(target * self.split_factor_after(co, d), 0 if target > 20 else 2)
                     upside = target / (p * self.split_factor_after(co, d)) - 1 - a["bias"] * 0.4
                     words = RATING_WORDS[a["style"]]
@@ -1214,6 +1224,7 @@ class World:
                             "rating": rating,
                             "rating_prior": prev_rating,
                             "target": target,
+                            "target_adj": target_adj,
                             "target_prior": prev_target,
                             "price": round(p * self.split_factor_after(co, d), 2),
                             "action": action,
@@ -1221,7 +1232,7 @@ class World:
                     )
                     prev_rating, prev_target = rating, target
                     d = next_bday(d + timedelta(days=int(rng.integers(45, 130))))
-                    if rng.random() < 0.03:
+                    if rng.random() < 0.01:
                         break  # coverage dropped
         actions.sort(key=lambda x: (x["date"], x["ticker"], x["firm"]))
         return actions

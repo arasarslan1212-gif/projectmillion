@@ -20,7 +20,13 @@ Verification status: the adapters were written against each provider's published
 ## What is never stored or shown
 
 - Full news articles: only headline, source, time, link, and a summary of at most 2 sentences in the app's own words.
-- Paywalled broker research: bank/broker cards show only the rating, target and date, plus a 1–2 sentence summary when publicly reported reasoning is linked.
+- Paywalled broker research: bank/broker cards show only the rating, target and date, a one-sentence description the app generates from those fields, and a link to the public headline. The feeds carry no reasoning, and the cards say so (DECISIONS.md D-028).
+
+## Analyst data, and what the app derives from it
+
+- **Stored:** each analyst action (date, firm, analyst name when provided, rating, target, provider headline and link) in `analyst_actions`, to build track records across stocks.
+- **Derived by the app:** Trust Scores, the trusted consensus, target-revision history, and rating counts over time. These are the app's own computations, labelled as such.
+- **Tier fallback:** per-analyst (FMP `price-target-news` joined to FMP `grades`, or Benzinga via Massive) → firm-level grades only → consensus only (Finnhub recommendation trends + FMP target consensus) → none. The UI shows which level is in use.
 - Earnings-call transcripts beyond what a license allows. None are used by default.
 - Scraped data from sites whose terms prohibit it. Yahoo Finance and similar unofficial endpoints are not used.
 
