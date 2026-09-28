@@ -1351,11 +1351,20 @@ class World:
             "capital_return": 0.4,
             "macro": -0.2,
         }
+        # Ground truth per template (the category hint above is too coarse for, e.g., raised vs. trimmed outlooks).
+        template_hint = {
+            "{t} raises full-year outlook (synthetic)": 0.5,
+            "{t} trims full-year outlook on softer demand (synthetic)": -0.5,
+            "{t} settles patent dispute (synthetic)": 0.1,
+            "Regulator opens review of {t} practices (synthetic)": -0.5,
+        }
         n_events = int(s.news_rate * 12)
         for _ in range(n_events):
             d = start + timedelta(days=int(rng.integers(0, 365)))
             kind = str(rng.choice(list(templates)))
-            head = str(rng.choice(templates[kind])).format(t=s.ticker)
+            tmpl = str(rng.choice(templates[kind]))
+            head = tmpl.format(t=s.ticker)
+            hint = template_hint.get(tmpl, sentiment_hint[kind])
             for k in range(int(rng.integers(1, 4))):  # duplicate coverage across outlets
                 ts = f"{d.isoformat()}T{int(rng.integers(12, 21)):02d}:{int(rng.integers(0, 60)):02d}:00"
                 variant = head if k == 0 else head.replace("(synthetic)", f"- {outlets[k]} (synthetic)")
@@ -1365,7 +1374,7 @@ class World:
                         "headline": "[Synthetic] " + variant,
                         "source": outlets[(k + len(items)) % 4],
                         "kind": kind,
-                        "hint": sentiment_hint[kind],
+                        "hint": hint,
                         "url": f"https://example.com/synthetic-news/{s.ticker.lower()}/{len(items)}",
                     }
                 )

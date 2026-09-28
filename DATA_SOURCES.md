@@ -19,7 +19,7 @@ Verification status: the adapters were written against each provider's published
 
 ## What is never stored or shown
 
-- Full news articles: only headline, source, time, link, and a summary of at most 2 sentences in the app's own words.
+- Full news articles: only headline, source, time, link, and a summary of at most 2 sentences in the app's own words. The LLM sees only the headline and the provider's short teaser (at most 400 characters), never article bodies. Without the LLM, no summaries are shown.
 - Paywalled broker research: bank/broker cards show only the rating, target and date, a one-sentence description the app generates from those fields, and a link to the public headline. The feeds carry no reasoning, and the cards say so (DECISIONS.md D-028).
 
 ## Analyst data, and what the app derives from it

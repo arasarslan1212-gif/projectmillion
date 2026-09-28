@@ -11,6 +11,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel, Field
+from sqlalchemy import Integer
 
 from engine import clock
 from engine.config import ENGINE_VERSION, get_config, load_metric_defs
@@ -122,6 +123,47 @@ class DcfOverrides(BaseModel):
     wacc: float | None = Field(None, ge=0.02, le=0.3)
     terminal_growth: float | None = Field(None, ge=-0.02, le=0.05)
     capex_pct: float | None = Field(None, ge=0.0, le=1.0)
+
+
+@app.get("/api/report/{ticker}/llm-cost")
+def llm_cost(ticker: str) -> dict:
+    """What the LLM calls behind today's report cost: tokens, dollars, cache hits and validator failures."""
+    from sqlalchemy import func, select
+
+    from engine import clock
+    from engine.db import models as m
+    from engine.db.session import session_scope
+    from engine.settings import get_settings
+
+    t = ticker.upper()
+    rid = f"{t}:{clock.today().isoformat()}"
+    with session_scope() as s:
+        rows = s.execute(
+            select(
+                m.LlmCostLog.purpose,
+                m.LlmCostLog.model,
+                func.count(),
+                func.sum(m.LlmCostLog.input_tokens),
+                func.sum(m.LlmCostLog.output_tokens),
+                func.sum(m.LlmCostLog.cost_usd),
+                func.sum(m.LlmCostLog.cached.cast(Integer)),
+                func.sum(m.LlmCostLog.validator_failures),
+            )
+            .where(m.LlmCostLog.report_id == rid)
+            .group_by(m.LlmCostLog.purpose, m.LlmCostLog.model)
+        ).all()
+    items = [
+        {"purpose": p, "model": mo, "calls": int(n), "input_tokens": int(i or 0), "output_tokens": int(o or 0),
+         "usd": round(float(c or 0), 6), "cached": int(ca or 0), "validator_failures": int(v or 0)}
+        for p, mo, n, i, o, c, ca, v in rows
+    ]  # fmt: skip
+    return {
+        "report_id": rid,
+        "llm_enabled": get_settings().llm_enabled,
+        "budget_tokens": get_settings().llm_report_token_budget,
+        "total_usd": round(sum(x["usd"] for x in items), 6),
+        "items": items,
+    }
 
 
 @app.post("/api/valuation/{ticker}/dcf")

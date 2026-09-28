@@ -440,3 +440,21 @@ analyst_trust_score:
     12 months (35%), and always-bullish bias (10%). Recent calls count more, and small samples are shrunk toward
     broader records and the average analyst so a short lucky streak cannot outrank a long good record.
   plain: How well this analyst's past calls actually worked out, adjusted for how many calls there are to judge.
+
+# ---- News and sentiment (M6) ----
+news_sentiment_30d:
+  label: News sentiment (30 days)
+  definition: >-
+    Weighted average sentiment (−1 to +1) of distinct news stories about the company in the last 30 days. Each story
+    is weighted by relevance to the company, materiality (low 0.4, medium 1, high 2), source reliability and how many
+    outlets covered it. Stories flagged as possible manipulation get zero weight. Sentiment comes from the LLM when
+    configured, otherwise from keyword rules on the headline.
+  formula: "Σ wᵢ sᵢ ÷ Σ wᵢ; wᵢ = relevance × materiality × reliability × (1 + 0.25 ln outlets)"
+  plain: Whether recent news about the company has been good or bad, counting important, reliable stories more.
+news_sentiment_7d:
+  label: News sentiment (7 days)
+  definition: The same weighted news sentiment over the last 7 days. Compared with days 8–30 to label the trend.
+  formula: "Σ wᵢ sᵢ ÷ Σ wᵢ over the last 7 days"
+news_stories_30d:
+  label: Stories (30 days)
+  definition: Number of distinct stories (after merging duplicates across outlets) with non-zero weight in the last 30 days.

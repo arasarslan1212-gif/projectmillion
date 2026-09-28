@@ -100,3 +100,33 @@ The configured providers return only current estimates, not their history. The a
 
 ### D-030: The synthetic analysts carry hidden skill, bias, noise and herding
 Each synthetic analyst has known skill, optimism bias, noise and herding parameters, so the scoring can be tested against ground truth. The tests check that measured optimism ranks true bias, that scores fall with bias and rise with skill, and that in a controlled simulation an accurate analyst clearly outscores a noisy one on the same stock. Analyst behaviour uses its own random stream, so tuning it never changes the rest of the synthetic market. Published targets stay within 0.5×–3× the price.
+
+### D-031: News is deduplicated into stories before anything is scored
+The same story arrives from several outlets and providers (FMP and Finnhub return overlapping items with different URLs). Items with the same canonical URL, or with headline word sets at least 50% similar (Jaccard) within 48 hours, form one story. The most reliable outlet represents it, and the number of outlets feeds its weight. Sentiment is aggregated per story, so ten reprints of one press release count once, slightly amplified for breadth.
+
+### D-032: Sentiment weights and the index
+Each story weighs relevance × materiality (low 0.4, medium 1, high 2) × source reliability (configured per outlet: wire services 1.0, press releases 0.75, opinion sites about 0.5) × (1 + 0.25 ln outlets). The 7- and 30-day figures are weighted means over their windows; the trend compares the last 7 days with days 8–30. The chart's daily index decays each story with a 7-day half-life and shows a gap where there is too little news, rather than a number resting on one headline. Price and sentiment sit in two stacked panels on one time axis, never on two y-scales.
+
+### D-033: Keyword rules when the LLM is unavailable, and no fake summaries
+Without an API key (or when the token budget or the API fails), stories are classified by deterministic rules on the headline: finance word lists with negation for sentiment, word-boundary keyword rules for the event type, and materiality from the event type and wording strength. The rules write no summaries: presenting a restated headline as a "summary in the app's own words" would be misleading, so the UI shows headlines and links and says why. The section labels which method classified each story.
+
+### D-034: The LLM layer
+All LLM calls go through one wrapper:
+- structured output validated against a pydantic schema, plus semantic checks in code;
+- one retry with the rejection reasons, and on failure a deterministic fallback;
+- a cache keyed by a hash of purpose, prompt version, model and input;
+- a per-report token budget;
+- a cost log row for every call, cached or not (`GET /api/report/{ticker}/llm-cost`).
+
+News is classified by FAST_MODEL in batches of 15 stories. Structural problems (missing or duplicate ids) are retried inside the call. Content problems, such as a summary longer than two sentences or containing a link, a directive or a number not in the headline or teaser, get one targeted retry for just those stories and then fall back per story. Model IDs are the ones the spec names, set through environment variables; newer models can be swapped in without code changes.
+
+### D-035: Prompt-injection defense for news
+Fetched text is untrusted in three layers:
+1. It is passed only as JSON inside `<news_items>` tags, and the system prompt says to never follow instructions in it.
+2. A deterministic detector flags text addressed to an AI system ("ignore previous instructions", "SYSTEM:", "rate this stock") before the model sees it.
+3. Flagged stories get sentiment 0 and weight 0 whatever the model says. They are shown with a warning, left out of chart markers and counts, and reported in the digest.
+
+The synthetic market contains an injection headline and an injection teaser for ZZTEC, so this path is tested end to end.
+
+### D-036: The digest's numbers are checked
+The 7- and 30-day digests are always computed as templates from structured story data. With the LLM on, FAST_MODEL rewrites them from a facts list with ids. Every number in the text must match a fact at the precision written (the number validator, shared with M7's narratives). On failure the text is regenerated once, then the template is used and the failure logged.

@@ -388,6 +388,62 @@ analysts:
   major_firms: [Goldman Sachs, Morgan Stanley, JPMorgan, J.P. Morgan, Bank of America, BofA Securities, Citigroup,
                 Citi, Wells Fargo, UBS, Barclays, Deutsche Bank]
 
+
+# ---------------------------------------------------------------------------------------
+# News and sentiment. Stories are clustered, classified (LLM, else keyword rules), and aggregated.
+news:
+  cluster_window_hours: 48        # items this close in time with similar headlines are one story
+  cluster_similarity: 0.5         # Jaccard similarity of normalized headline words
+  max_clusters_llm: 80            # the most recent stories get model classification; older ones keyword rules
+  llm_batch_size: 15              # stories per classification request
+  sentiment_half_life_days: 7     # decay of the daily sentiment index
+  min_series_weight: 0.3          # below this decayed weight a day shows no index value
+  materiality_weights: {low: 0.4, medium: 1.0, high: 2.0}
+  # Source reliability (0–1) scales each story's weight. Wire services and major financial press highest;
+  # company press releases are primary but promotional; opinion and aggregator sites lowest.
+  reliability:
+    default: 0.6
+    sources:
+      Reuters: 1.0
+      Associated Press: 1.0
+      Bloomberg: 1.0
+      Dow Jones: 1.0
+      The Wall Street Journal: 1.0
+      Financial Times: 0.95
+      Barron's: 0.9
+      CNBC: 0.85
+      MarketWatch: 0.8
+      Investor's Business Daily: 0.75
+      Business Wire: 0.75
+      PR Newswire: 0.75
+      GlobeNewswire: 0.75
+      Benzinga: 0.7
+      Yahoo: 0.7
+      TheStreet: 0.6
+      Zacks: 0.55
+      Seeking Alpha: 0.55
+      Motley Fool: 0.5
+      InvestorPlace: 0.45
+    synthetic:
+      Synthetic Wire: 1.0
+      Placeholder Financial Times: 0.9
+      Example Business News: 0.8
+      Sample Markets Daily: 0.6
+
+# ---------------------------------------------------------------------------------------
+# LLM layer. Model IDs come from FAST_MODEL / REASONING_MODEL; the per-report token budget from
+# LLM_REPORT_TOKEN_BUDGET. Prices (USD per million tokens, input/output) are used for cost logs only.
+llm:
+  news_max_tokens: 6000
+  prompt_versions: {news_batch: news-v1, news_item: news-v1, news_digest: digest-v1}
+  pricing_per_mtok:
+    default: [4.0, 20.0]
+    claude-haiku-4-5-20251001: [1.0, 5.0]
+    claude-haiku-4-5: [1.0, 5.0]
+    claude-sonnet-5: [2.0, 10.0]
+    claude-sonnet-5-5: [2.0, 10.0]
+    claude-opus-5-5: [4.0, 20.0]
+
 valuation:
   horizon_months: 12
   # Share of the log-gap between price and intrinsic value assumed to close within 12 months.

@@ -10,6 +10,7 @@ import { DISCLAIMER_SHORT } from "@/lib/legal";
 import { pushRecent } from "@/lib/recent";
 import { AnalystsSection } from "./analysts";
 import { FundamentalsSection } from "./fundamentals";
+import { NewsSection } from "./news";
 import { ReportHeader } from "./header";
 import { SnapshotStats } from "./overview";
 import { OverviewSection } from "./overview-section";
@@ -25,6 +26,7 @@ const NAV = [
   { id: "trust", label: "Trust Rating" },
   { id: "valuation", label: "Price target" },
   { id: "analysts", label: "Analysts" },
+  { id: "news", label: "News" },
   { id: "fundamentals", label: "Fundamentals" },
   { id: "risk", label: "Risk & red flags" },
   { id: "peers", label: "Peers" },
@@ -40,6 +42,7 @@ export function ReportPage({ ticker }: { ticker: string }) {
   const trust = useSection(ticker, "trust", version);
   const valuation = useSection(ticker, "valuation", version);
   const analysts = useSection(ticker, "analysts", version);
+  const news = useSection(ticker, "news", version);
   const risk = useSection(ticker, "risk", version);
   const fundamentals = useSection(ticker, "fundamentals", version);
   const [peerOverride, setPeerOverride] = useState<string[] | null>(null);
@@ -56,6 +59,7 @@ export function ReportPage({ ticker }: { ticker: string }) {
   const consAll = analysts.data?.consensus_all;
   const consTrusted = analysts.data?.consensus_trusted;
   const chartTargets = analysts.data?.chart_targets;
+  const newsMarkers = news.data?.markers;
   const overlays = useMemo(
     () => ({
       high52,
@@ -63,8 +67,9 @@ export function ReportPage({ ticker }: { ticker: string }) {
       cone: cone ?? null,
       consensus: consAll || consTrusted ? { all: consAll, trusted: consTrusted } : null,
       analystTargets: chartTargets ?? [],
+      events: newsMarkers ?? [],
     }),
-    [high52, low52, cone, consAll, consTrusted, chartTargets],
+    [high52, low52, cone, consAll, consTrusted, chartTargets, newsMarkers],
   );
 
   useEffect(() => {
@@ -190,6 +195,17 @@ export function ReportPage({ ticker }: { ticker: string }) {
           skeletonHeight="h-96"
         >
           {analysts.data && <AnalystsSection a={analysts.data} appTarget={valuation.data?.target?.p50} />}
+        </SectionShell>
+        <SectionShell
+          id="news"
+          title="News and sentiment"
+          subtitle="Deduplicated stories, their tone and importance, and what changed recently"
+          data={news.data}
+          loading={news.loading}
+          error={news.error}
+          skeletonHeight="h-96"
+        >
+          {news.data && <NewsSection n={news.data} />}
         </SectionShell>
         <SectionShell
           id="fundamentals"
