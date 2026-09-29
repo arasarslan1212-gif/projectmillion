@@ -22,11 +22,13 @@ from fastapi.testclient import TestClient
 
 from engine import clock
 from engine.data.service import get_data
+from engine.settings import get_settings
 from engine.synthetic.world import BENCHMARKS, FACTOR_FUNDS
 
 DEMO_TICKERS = ["ZZTEC", "ZZBNK", "ZZREI", "ZZGRO", "ZZUTL", "ZZSML"]
 RANGES = ["6m", "1y", "3y", "5y"]
 KINDS = ["backtest", "live", "all"]
+MAX_COMBO_TICKERS = 6
 
 log = logging.getLogger("engine.export")
 
@@ -87,14 +89,17 @@ def export(out: Path, tickers: list[str], backtest: bool) -> dict:
         share = ex.get(f"/report/{tickers[0]}/share", "", method="POST")
         ex.get(f"/snapshot/{share['token']}", f"snapshot/{share['token']}.json")
 
-        for n in range(2, min(4, len(tickers)) + 1):
+        # Every compare set and watchlist subset, while that stays small; for longer lists the in-browser engine
+        # computes them on request (25 stocks would mean ~15,000 compare sets).
+        combos = len(tickers) <= MAX_COMBO_TICKERS
+        for n in range(2, min(4, len(tickers)) + 1) if combos else []:
             for combo in itertools.combinations(tickers, n):
                 for rng in RANGES:
                     ex.get(
                         f"/compare?tickers={','.join(combo)}&range={rng}", f"compare/{key(combo)}_{rng}.json"
                     )
         print(f"compare exported ({time.time() - t0:.0f}s)", flush=True)
-        for n in range(1, len(tickers) + 1):
+        for n in range(1, len(tickers) + 1) if combos else [1]:
             for combo in itertools.combinations(tickers, n):
                 ex.get(f"/watchlist/summary?tickers={','.join(combo)}", f"watchlist/{key(combo)}.json")
         ex.write("watchlist/_empty.json", {"holdings": [], "aggregate": None, "errors": []})
@@ -112,10 +117,16 @@ def export(out: Path, tickers: list[str], backtest: bool) -> dict:
         for t in tickers:
             ex.get(f"/track-record/{t}", f"track-record/ticker/{t}.json")
 
-        # Every synthetic company (not the index and factor funds): the in-browser engine can analyze all of them,
-        # so the site lists and pre-renders them; only `tickers` have saved responses.
+        # On synthetic data, every company (not the index and factor funds): the in-browser engine can analyze all
+        # of them, so the site lists and pre-renders them; only `tickers` have saved responses. On recorded real
+        # data, only the recorded tickers can be replayed.
         funds = set(BENCHMARKS) | set(FACTOR_FUNDS)
-        companies = [s for s in get_data().symbols().value or [] if s.ticker not in funds]
+        syms = get_data().symbols().value or []
+        if health["synthetic"]:
+            companies = [s for s in syms if s.ticker not in funds]
+        else:
+            by_ticker = {s.ticker: s for s in syms}
+            companies = [by_ticker[t] for t in tickers if t in by_ticker]
         ex.write(
             "symbols.json",
             [{"ticker": s.ticker, "name": s.name, "exchange": s.exchange, "exported": s.ticker in tickers}
@@ -130,8 +141,20 @@ def export(out: Path, tickers: list[str], backtest: bool) -> dict:
             "tickers": tickers,
             "companies": [s.ticker for s in companies],
             "snapshot_tokens": [share["token"]],
+            "combos": combos,
         }
         ex.write("manifest.json", manifest)
+        s = get_settings()
+        if s.data_mode == "record":  # pins "today" for the replay, which must repeat exactly these requests
+            meta = {
+                "as_of": health["today"],
+                "tickers": tickers,
+                "tier": s.data_tier,
+                "price_source": s.price_source,
+            }
+            rec = s.fixtures_dir / s.record_set
+            rec.mkdir(parents=True, exist_ok=True)
+            (rec / "meta.json").write_text(json.dumps(meta, indent=1))
     print(f"exported {ex.n} files, {ex.bytes / 1e6:.1f} MB, in {time.time() - t0:.0f}s")
     return manifest
 
@@ -139,7 +162,10 @@ def export(out: Path, tickers: list[str], backtest: bool) -> dict:
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--out", type=Path, required=True)
-    ap.add_argument("--tickers", help="comma-separated (default: the six synthetic headline tickers)")
+    ap.add_argument(
+        "--tickers",
+        help="comma-separated, or @file with one per line (default: the six synthetic headline tickers)",
+    )
     ap.add_argument(
         "--no-backtest", action="store_true", help="skip the backtest (the track record will be empty)"
     )
@@ -148,7 +174,16 @@ def main() -> None:
     from engine.db.session import init_db
 
     init_db()
-    tickers = [t.strip().upper() for t in a.tickers.split(",")] if a.tickers else DEMO_TICKERS
+    raw = Path(a.tickers[1:]).read_text() if a.tickers and a.tickers.startswith("@") else a.tickers
+    tickers = (
+        [
+            t.strip().upper()
+            for t in raw.replace("\n", ",").split(",")
+            if t.strip() and not t.strip().startswith("#")
+        ]
+        if raw
+        else DEMO_TICKERS
+    )
     export(a.out, tickers, backtest=not a.no_backtest)
 
 

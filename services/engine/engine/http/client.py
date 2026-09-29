@@ -17,6 +17,7 @@ import json
 import random
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -177,6 +178,10 @@ class HttpResponse:
 class FixtureStore:
     """Fixtures live at fixtures/<set>/<provider>/<key>.json.gz with an index.jsonl per set."""
 
+    # Where a missing fixture file can be fetched from: called with "<set>/<provider>/<key>.json.gz", returns the
+    # bytes or None. The in-browser engine sets it to download recordings from the site on first use.
+    fetcher: Callable[[str], bytes | None] | None = None
+
     def __init__(self, root: Path, set_name: str) -> None:
         self.dir = root / set_name
         self.set_name = set_name
@@ -187,6 +192,11 @@ class FixtureStore:
 
     def load(self, provider: str, key: str) -> HttpResponse | None:
         p = self.path(provider, key)
+        if not p.exists() and FixtureStore.fetcher is not None:
+            data = FixtureStore.fetcher(f"{self.set_name}/{provider}/{key}.json.gz")
+            if data:
+                p.parent.mkdir(parents=True, exist_ok=True)
+                p.write_bytes(data)
         if not p.exists():
             return None
         with gzip.open(p, "rt", encoding="utf-8") as fh:

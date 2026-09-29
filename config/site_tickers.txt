@@ -1,0 +1,23 @@
+# Stocks the public GitHub Pages site carries with real data (one per line; recorded nightly by
+# .github/workflows/pages.yml when the FINNHUB_API_KEY and SEC_USER_AGENT secrets are set).
+# Each covers its peers' data too, so every line adds roughly ten companies' worth of API calls.
+AAPL
+MSFT
+NVDA
+AMZN
+GOOGL
+META
+TSLA
+JPM
+BAC
+V
+JNJ
+UNH
+XOM
+WMT
+KO
+COST
+NFLX
+O
+NEE
+RIVN

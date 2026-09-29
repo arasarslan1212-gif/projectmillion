@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
-import { CircleCheck, FlaskConical, LoaderCircle, TriangleAlert } from "lucide-react";
+import { CircleCheck, FlaskConical, LoaderCircle, Radio, TriangleAlert } from "lucide-react";
 import { useHealth } from "@/lib/api";
 import { startEngine, useEngine } from "@/lib/engine-client";
+import { formatDate } from "@/lib/format";
 import { BROWSER_ENGINE, STATIC_DEMO } from "@/lib/static";
 
 /** One slim bar above the header: the synthetic-data label (always shown on synthetic data) and, on the static
@@ -32,6 +33,17 @@ export function StatusBar() {
             </span>
             <span className="truncate">
               Every company, price, analyst and headline here is generated for testing and is not real.
+            </span>
+          </p>
+        )}
+        {STATIC_DEMO && health && !synthetic && (
+          <p role="note" className="flex min-w-0 items-center gap-2 text-ink-2">
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-good/12 px-2 py-0.5 font-semibold uppercase tracking-wide text-good-ink">
+              <Radio className="size-3" aria-hidden />
+              Real market data
+            </span>
+            <span className="truncate">
+              As of the close on {formatDate(health.today)}; refreshed each weekday.
             </span>
           </p>
         )}

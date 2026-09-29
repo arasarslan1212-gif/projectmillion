@@ -7,6 +7,7 @@
  * downloads numpy, pandas and scipy from its CDN. Fails on any unexpected status; reports, without failing,
  * where a live answer differs from the saved one (the browser's numpy/pandas/scipy are not uv.lock's).
  */
+import { readFileSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 import { loadPyodide, version } from "pyodide";
@@ -30,6 +31,13 @@ const engine = await bootEngine({
   bundle,
   indexURL: null, // the npm package; Node fetches packages from the CDN and caches them there
   fetchBytes: async (f) => new Uint8Array(await readFile(new URL(f, bundleDir))),
+  fetchFixtureSync: (p) => {
+    try {
+      return new Uint8Array(readFileSync(new URL(`fixtures/${p}`, bundleDir)));
+    } catch {
+      return null;
+    }
+  },
   onStatus: (s) => console.log(`[${secs()}s] ${s}`),
 });
 console.log(`[${secs()}s] engine ready: ${JSON.stringify(engine.health)}`);
@@ -83,16 +91,20 @@ for (const s of sections) {
 }
 
 // what the static files can't answer
-const peer = manifest.companies?.find((c) => !manifest.tickers.includes(c)) ?? "ZQT01";
-const headline = await call("GET", `/report/${peer}/section/headline`);
-if (headline && !(headline.target?.p50 > 0)) failures++;
-await call("GET", `/report/${t}/section/peers?peers=${peer}`);
-await call("GET", `/compare?tickers=${t},${peer}&range=1y`);
+const recorded = !!bundle.fixtures; // real data: replaying the build's recording
+const other = manifest.tickers.find((x) => x !== t) ?? t;
+const unsaved = recorded ? null : (manifest.companies?.find((c) => !manifest.tickers.includes(c)) ?? "ZQT01");
+if (unsaved) {
+  const headline = await call("GET", `/report/${unsaved}/section/headline`);
+  if (headline && !(headline.target?.p50 > 0)) failures++;
+}
+await call("GET", `/report/${t}/section/peers?peers=${unsaved ?? other}`);
+await call("GET", `/compare?tickers=${t},${other}&range=1y`);
 const dcf = await call("POST", `/valuation/${t}/dcf`, { wacc: 0.1 });
 if (dcf && !(dcf.per_share > 0)) failures++;
 await call("POST", `/valuation/${t}/dcf`, { wacc: 9 }, 422);
 await call("POST", `/report/${t}/refresh`);
-await call("PUT", "/watchlist", { tickers: [t, peer] });
+await call("PUT", "/watchlist", { tickers: [t, other] });
 await call("POST", "/alerts/run");
 await call("GET", "/alerts");
 await call("GET", "/report/NOPE/section/company", null, 404);

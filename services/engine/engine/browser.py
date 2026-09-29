@@ -9,6 +9,8 @@ runtime:
   one after another.
 - Requests go through the FastAPI app in-process, via httpx's ASGI transport, exactly as they would over HTTP.
 - The database is an SQLite file in the browser's memory, seeded with the build's track record and calibration.
+- On the real-data site, provider responses are replayed from the build's recording (mock mode, recorded set);
+  each recorded file is downloaded from the site the first time a request needs it.
 """
 
 from __future__ import annotations
@@ -18,7 +20,6 @@ import gzip
 import json
 import logging
 import os
-import shutil
 import time
 import traceback
 from concurrent.futures import Future
@@ -71,12 +72,19 @@ def patch_runtime() -> None:
     anyio.to_thread.run_sync = _run_sync_inline  # type: ignore[assignment]
 
 
-def configure(db_path: str = DB_PATH) -> None:
-    """The browser engine is always offline and synthetic: no keys, no network, no scheduler."""
+def _py(v):
+    """A value from JavaScript (Pyodide JsProxy) as a Python object; Python values pass through."""
+    return v.to_py() if hasattr(v, "to_py") else v
+
+
+def configure(db_path: str = DB_PATH, env: dict | None = None) -> None:
+    """The browser engine is always offline: mock mode (synthetic, or a replayed recording), no keys, no network,
+    no scheduler. `env` comes from the bundle and may choose the recorded set and its price source."""
     os.environ.update(
         {
             "DATA_MODE": "mock",
             "FIXTURE_SET": "synthetic",
+            **{str(k): str(v) for k, v in (env or {}).items()},
             "DATABASE_URL": f"sqlite:///{db_path}",
             "SQLITE_WAL": "false",
             "ENABLE_SCHEDULER": "false",
@@ -85,14 +93,33 @@ def configure(db_path: str = DB_PATH) -> None:
     )
 
 
-def start(seed_db_gz: str | None = None, db_path: str = DB_PATH) -> dict:
+def _gzipped(data: bytes) -> bytes:
+    """Some hosts serve .gz files with Content-Encoding: gzip, so the browser hands them over decompressed; store
+    them compressed either way."""
+    return data if data[:2] == b"\x1f\x8b" else gzip.compress(data, mtime=0)
+
+
+def use_fixture_fetcher(fetch) -> None:
+    """Download recorded provider responses on demand: `fetch(path)` returns the file's bytes or None."""
+    from engine.http.client import FixtureStore
+
+    def fetcher(path: str) -> bytes | None:
+        data = _py(fetch(path))
+        return _gzipped(bytes(data)) if data is not None else None
+
+    FixtureStore.fetcher = fetcher
+
+
+def start(seed_db_gz: str | None = None, db_path: str = DB_PATH, env=None, fetch_fixture=None) -> dict:
     """Configure the engine, restore the seed database and import the API. Returns the engine's /health."""
     global _client
     t0 = time.perf_counter()
-    configure(db_path)
+    configure(db_path, _py(env))
+    if fetch_fixture is not None:
+        use_fixture_fetcher(fetch_fixture)
     if seed_db_gz and Path(seed_db_gz).exists() and not Path(db_path).exists():
-        with gzip.open(seed_db_gz) as src, open(db_path, "wb") as dst:
-            shutil.copyfileobj(src, dst)
+        raw = Path(seed_db_gz).read_bytes()
+        Path(db_path).write_bytes(gzip.decompress(raw) if raw[:2] == b"\x1f\x8b" else raw)
     patch_runtime()
     logging.getLogger("httpx").setLevel(logging.WARNING)  # one line per in-process request is noise
 

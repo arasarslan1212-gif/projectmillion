@@ -5,7 +5,9 @@ Output, served next to the site under /engine/:
 - seed.db.gz: the database after the export (track record, calibration, analyst history, alerts), without the
   tables that are only caches of provider data, which the engine refills on demand;
 - wheels/: pure-Python packages the engine needs that Pyodide doesn't ship, pinned to uv.lock;
-- bundle.json: what to load, including the Pyodide release and packages (served from Pyodide's CDN).
+- bundle.json: what to load, including the Pyodide release and packages (served from Pyodide's CDN);
+- with --fixtures (real data): fixtures/<set>/..., the recorded provider responses, which the engine downloads one
+  file at a time as requests need them, and the settings that replay them.
 
 Usage (from services/engine):
     python -m engine.tools.build_browser_bundle --db demo.db --out ../../apps/web/public/engine
@@ -17,6 +19,7 @@ import argparse
 import gzip
 import hashlib
 import json
+import os
 import shutil
 import sqlite3
 import tempfile
@@ -64,7 +67,7 @@ def fetch_wheel(name: str, version: str, out_dir: Path, cache: Path | None) -> s
     return f["filename"]
 
 
-def build_engine_zip(path: Path) -> int:
+def build_engine_zip(path: Path, fixture_meta: Path | None = None) -> int:
     files = [
         *sorted(
             p for p in (ENGINE_DIR / "engine").rglob("*.py") if "tools" not in p.relative_to(ENGINE_DIR).parts
@@ -75,7 +78,36 @@ def build_engine_zip(path: Path) -> int:
         for f in files:
             z.write(f, f.relative_to(REPO_ROOT).as_posix())
         z.writestr("fixtures/synthetic/", "")
+        if fixture_meta:  # pins the recording's "today" (engine.clock)
+            z.write(fixture_meta, f"fixtures/{fixture_meta.parent.name}/meta.json")
     return len(files)
+
+
+KEY_VARS = (
+    "FINNHUB_API_KEY",
+    "FMP_API_KEY",
+    "TIINGO_API_KEY",
+    "FRED_API_KEY",
+    "MASSIVE_API_KEY",
+    "ANTHROPIC_API_KEY",
+)
+
+
+def copy_fixtures(src: Path, out: Path) -> dict:
+    """Publish a recorded set for on-demand download (the index is only needed when recording).
+
+    Recordings never store keys (the HTTP client strips them), and this checks it: any file containing the value
+    of a key in the environment stops the build, since everything here becomes public."""
+    files = [p for p in src.rglob("*.json.gz") if p.is_file()]
+    secrets = [v for k in KEY_VARS if len(v := os.environ.get(k, "")) >= 8]
+    for p in files:
+        text = gzip.decompress(p.read_bytes()).decode("utf-8", "replace")
+        if any(v in text for v in secrets):
+            raise RuntimeError(f"{p.relative_to(src)} contains an API key; refusing to publish it")
+        dest = out / "fixtures" / src.name / p.relative_to(src)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(p, dest)
+    return {"files": len(files), "bytes": sum(p.stat().st_size for p in files)}
 
 
 def build_seed_db(src: Path | None, out: Path) -> dict:
@@ -110,7 +142,7 @@ def build_seed_db(src: Path | None, out: Path) -> dict:
     return {"rows": counts, "bytes": len(raw)}
 
 
-def build(out: Path, db: Path | None, wheel_cache: Path | None = None) -> dict:
+def build(out: Path, db: Path | None, wheel_cache: Path | None = None, fixtures: Path | None = None) -> dict:
     from engine.api.main import health
 
     if out.exists():
@@ -118,7 +150,16 @@ def build(out: Path, db: Path | None, wheel_cache: Path | None = None) -> dict:
     (out / "wheels").mkdir(parents=True)
     pins = locked_versions()
     wheels = [fetch_wheel(n, pins[n], out / "wheels", wheel_cache) for n in EXTRA_WHEELS]
-    n_files = build_engine_zip(out / "engine.zip")
+    env, rec = {}, None
+    if fixtures:
+        meta = json.loads((fixtures / "meta.json").read_text())
+        env = {
+            "FIXTURE_SET": fixtures.name,
+            "DATA_TIER": meta["tier"],
+            "PRICE_SOURCE": meta.get("price_source", "auto"),
+        }
+        rec = copy_fixtures(fixtures, out)
+    n_files = build_engine_zip(out / "engine.zip", fixtures / "meta.json" if fixtures else None)
     seed = build_seed_db(db, out / "seed.db.gz")
     h = health()
     bundle = {
@@ -130,9 +171,14 @@ def build(out: Path, db: Path | None, wheel_cache: Path | None = None) -> dict:
         "engine": "engine.zip",
         "seed_db": "seed.db.gz",
         "seed": seed["rows"],
+        "env": env,
+        "fixtures": "fixtures/" if fixtures else None,
+        "recorded": rec,
         "sizes": {p.name: p.stat().st_size for p in sorted(out.iterdir()) if p.is_file()},
     }
     (out / "bundle.json").write_text(json.dumps(bundle, indent=1))
+    if rec:
+        print(f"recorded responses: {rec['files']} files, {rec['bytes'] / 1e6:.1f} MB (downloaded on demand)")
     print(
         f"engine.zip: {n_files} files, {bundle['sizes']['engine.zip'] / 1e6:.1f} MB; seed database "
         f"{seed['bytes'] / 1e6:.1f} MB ({bundle['sizes']['seed.db.gz'] / 1e6:.1f} MB gzipped); wheels: {wheels}"
@@ -145,8 +191,11 @@ def main() -> None:
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--db", type=Path, help="database to seed from (the static export's); default: empty")
     ap.add_argument("--wheel-cache", type=Path, help="keep downloaded wheels here between builds")
+    ap.add_argument(
+        "--fixtures", type=Path, help="a recorded fixture set (with meta.json) to replay; default: synthetic"
+    )
     a = ap.parse_args()
-    build(a.out, a.db, a.wheel_cache)
+    build(a.out, a.db, a.wheel_cache, a.fixtures)
 
 
 if __name__ == "__main__":

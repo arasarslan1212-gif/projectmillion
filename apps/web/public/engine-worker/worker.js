@@ -24,6 +24,15 @@ async function fetchBytes(file) {
   return new Uint8Array(await r.arrayBuffer());
 }
 
+/** A recorded provider response, read synchronously (allowed in workers): the engine asks for it mid-request. */
+function fetchFixtureSync(path) {
+  const xhr = new XMLHttpRequest();
+  xhr.open("GET", new URL(`fixtures/${path}`, bundleDir).href, false);
+  xhr.responseType = "arraybuffer";
+  xhr.send();
+  return xhr.status === 200 ? new Uint8Array(xhr.response) : null;
+}
+
 async function boot() {
   const t0 = performance.now();
   const r = await fetch(new URL("bundle.json", bundleDir));
@@ -34,6 +43,7 @@ async function boot() {
     loadPyodide,
     bundle,
     fetchBytes,
+    fetchFixtureSync,
     onStatus: (stage) => self.postMessage({ type: "status", stage }),
   });
   self.postMessage({ type: "ready", health: engine.health, seconds: (performance.now() - t0) / 1000 });

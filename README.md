@@ -28,6 +28,24 @@ On the site, saved answers show at once and everything else is computed live in 
 
 To enable it, set **Settings → Pages → Build and deployment → Source** to **GitHub Actions**. After the next push, or a manual run of the "Pages demo" workflow, the site is at `https://<owner>.github.io/<repo>/`.
 
+### Real stocks on the site
+
+Add these repository secrets (**Settings → Secrets and variables → Actions**):
+
+| Secret | Value |
+|---|---|
+| `FINNHUB_API_KEY` | A free key from https://finnhub.io/register. It supplies prices, quotes, news, analyst consensus and earnings. |
+| `SEC_USER_AGENT` | Your app name and a contact email, e.g. `Candor Research you@example.com`. The SEC requires a reachable contact and refuses others, including GitHub no-reply addresses. |
+| `FRED_API_KEY` (optional) | A free key from FRED, for live interest rates. Without it, rates fall back to the config's defaults. |
+
+With the first two secrets set:
+
+1. Each weekday night, and on every push, the workflow records real data for the stocks in `config/site_tickers.txt` (`DATA_MODE=record`: every provider response is saved, keys stripped).
+2. It exports the saved answers.
+3. It bundles the recording, so the in-browser engine replays it and downloads only the files each request needs.
+
+The site then carries those stocks, and their peers' data, as of the last close. The backtest track record needs years of history that free data doesn't provide, so it starts empty on real data. `python -m engine.tools.probe_providers` checks each live source through the engine's adapters, and the "Data probe" workflow runs it with the secrets.
+
 To build it locally:
 
 ```bash

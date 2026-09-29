@@ -25,6 +25,8 @@ const key = (tickers: string) => split(tickers).sort().join("_");
 // Set at build time from the export's manifest (empty, e.g. in unit tests: assume everything was exported).
 const EXPORTED = new Set(split(process.env.NEXT_PUBLIC_EXPORTED_TICKERS ?? ""));
 const saved = (...tickers: string[]) => !EXPORTED.size || tickers.every((t) => EXPORTED.has(t));
+// Whether compare sets and multi-stock watchlists were saved (only for short lists; see export_static.py).
+const COMBOS = process.env.NEXT_PUBLIC_EXPORTED_COMBOS !== "0";
 
 /** Tickers refreshed in this session: their reports come from the engine from then on. */
 const liveTickers = new Set<string>();
@@ -54,11 +56,12 @@ export function staticFile(path: string): string | null {
   }
   if (p === "/compare") {
     const ts = q.get("tickers") ?? "";
-    return saved(...split(ts)) ? `compare/${key(ts)}_${q.get("range") ?? "1y"}.json` : null;
+    return COMBOS && saved(...split(ts)) ? `compare/${key(ts)}_${q.get("range") ?? "1y"}.json` : null;
   }
   if (p === "/watchlist/summary") {
     const ts = q.get("tickers") ?? "";
-    return saved(...split(ts)) ? `watchlist/${key(ts) || "_empty"}.json` : null;
+    const n = split(ts).length;
+    return (COMBOS || n <= 1) && saved(...split(ts)) ? `watchlist/${key(ts) || "_empty"}.json` : null;
   }
   if (p === "/track-record")
     return `track-record/${q.get("kind") ?? "backtest"}/${q.get("profile") || "_all"}.json`;

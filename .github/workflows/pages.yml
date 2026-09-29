@@ -1,12 +1,17 @@
-# Publishes the app to GitHub Pages as a static site that runs the analysis engine in the visitor's browser:
-# the engine's API responses for the synthetic market are exported to JSON (engine.tools.export_static) for instant
-# answers, and the engine itself is bundled for Pyodide (engine.tools.build_browser_bundle) to compute everything
-# else. Requires Settings → Pages → Build and deployment → Source: "GitHub Actions".
+# Publishes the app to GitHub Pages as a static site that runs the analysis engine in the visitor's browser: the
+# engine's API responses are exported to JSON (engine.tools.export_static) for instant answers, and the engine
+# itself is bundled for Pyodide (engine.tools.build_browser_bundle) to compute everything else.
+#
+# Data: with the FINNHUB_API_KEY and SEC_USER_AGENT repository secrets set (FRED_API_KEY optional), the stocks in
+# config/site_tickers.txt are analyzed on real data, recorded each weekday night and replayed in the browser.
+# Without them, the site runs on the synthetic market. Requires Settings → Pages → Source: "GitHub Actions".
 name: Pages demo
 
 on:
   push:
     branches: [main, claude/problem-solution-brainstorm-us4vrq]
+  schedule:
+    - cron: "23 6 * * 2-6" # weekdays, after the US close has settled
   workflow_dispatch:
 
 permissions:
@@ -32,6 +37,15 @@ jobs:
 
       - id: pages
         uses: actions/configure-pages@v5
+
+      - name: Choose the data
+        id: data
+        env:
+          HAS_KEYS: ${{ secrets.FINNHUB_API_KEY != '' && secrets.SEC_USER_AGENT != '' }}
+        run: |
+          echo "real=$HAS_KEYS" >> "$GITHUB_OUTPUT"
+          if [ "$HAS_KEYS" = "true" ]; then echo "Real data for config/site_tickers.txt";
+          else echo "Synthetic data (add the FINNHUB_API_KEY and SEC_USER_AGENT secrets for real stocks)"; fi
 
       - uses: astral-sh/setup-uv@v6
         with:
@@ -71,7 +85,8 @@ jobs:
           cd ../../apps/web
           node scripts/engine-smoke.mjs --bundle "$RUNNER_TEMP/smoke/engine" --data "$RUNNER_TEMP/smoke/data"
 
-      - name: Export the engine's responses and bundle the engine
+      - name: Export the engine's responses and bundle the engine (synthetic market)
+        if: steps.data.outputs.real != 'true'
         working-directory: services/engine
         env:
           DATABASE_URL: sqlite:///${{ runner.temp }}/demo.db
@@ -79,6 +94,31 @@ jobs:
           uv run --frozen --no-dev python -m engine.tools.export_static --out ../../apps/web/public/data
           uv run --frozen --no-dev python -m engine.tools.build_browser_bundle --db "$RUNNER_TEMP/demo.db" \
             --out ../../apps/web/public/engine
+
+      # Runs the engine on the live APIs, recording every response (keys are never recorded, and the bundle
+      # builder refuses to publish a file containing one), then bundles the recording for replay in the browser.
+      - name: Record real data, export the engine's responses and bundle the engine
+        if: steps.data.outputs.real == 'true'
+        working-directory: services/engine
+        env:
+          DATA_MODE: record
+          DATA_TIER: free
+          PRICE_SOURCE: finnhub
+          FIXTURES_DIR: ${{ runner.temp }}/fixtures
+          RECORD_SET: recorded
+          DATABASE_URL: sqlite:///${{ runner.temp }}/real.db
+          SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT }}
+          FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        run: |
+          uv run --frozen --no-dev python -m engine.tools.export_static --tickers @../../config/site_tickers.txt \
+            --no-backtest --out ../../apps/web/public/data
+          uv run --frozen --no-dev python -m engine.tools.build_browser_bundle --db "$RUNNER_TEMP/real.db" \
+            --fixtures "$RUNNER_TEMP/fixtures/recorded" --out ../../apps/web/public/engine
+
+      - name: Check the site's engine against its saved answers
+        working-directory: apps/web
+        run: node scripts/engine-smoke.mjs
 
       - name: Build the static site
         working-directory: apps/web

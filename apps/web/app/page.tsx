@@ -2,9 +2,10 @@
 
 import { BadgeCheck, Gauge, Scale, Sparkles, Users } from "lucide-react";
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { TickerSearch } from "@/components/ticker-search";
-import { useHealth } from "@/lib/api";
+import { search, useHealth } from "@/lib/api";
+import { STATIC_DEMO } from "@/lib/static";
 import { useRecent, useWatchlist } from "@/lib/recent";
 
 const REAL_EXAMPLES = ["AAPL", "MSFT", "NVDA", "JPM", "O", "NEE"];
@@ -62,11 +63,23 @@ function TickerChips({ title, tickers, empty }: { title: string; tickers: string
   );
 }
 
+/** On the static site, the stocks it carries; otherwise a fixed set of examples. */
+function useExamples(synthetic: boolean | undefined): string[] {
+  const [site, setSite] = useState<string[] | null>(null);
+  useEffect(() => {
+    if (!STATIC_DEMO) return;
+    search("")
+      .then((r) => setSite(r.results.slice(0, 8).map((x) => x.ticker)))
+      .catch(() => setSite(null));
+  }, []);
+  return site ?? (synthetic ? SYNTHETIC_EXAMPLES : REAL_EXAMPLES);
+}
+
 export default function Home() {
   const health = useHealth();
   const recent = useRecent();
   const [watch] = useWatchlist();
-  const examples = health?.synthetic ? SYNTHETIC_EXAMPLES : REAL_EXAMPLES;
+  const examples = useExamples(health?.synthetic);
   return (
     <div className="relative overflow-hidden">
       <div className="hero-glow pointer-events-none absolute inset-x-0 top-0 h-[480px]" aria-hidden />

@@ -7,7 +7,7 @@
  * --pyodide-dir serves Pyodide from a local copy instead of its CDN (for machines that can't reach it).
  * Needs the `playwright` package and a Chromium it can launch.
  */
-import { createReadStream, existsSync, statSync } from "node:fs";
+import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
 import { createServer } from "node:http";
 import { extname, join, normalize } from "node:path";
 import { chromium } from "playwright";
@@ -19,6 +19,10 @@ const arg = (name, dflt) => {
 const base = arg("--base", "");
 const pyodideDir = arg("--pyodide-dir", null);
 const root = new URL("../out/", import.meta.url).pathname;
+const manifest = JSON.parse(readFileSync(join(root, "data", "manifest.json"), "utf8"));
+const first = manifest.tickers[0];
+const other = manifest.tickers.find((x) => x !== first) ?? first;
+const unsaved = (manifest.companies ?? []).find((c) => !manifest.tickers.includes(c)); // synthetic peers only
 const TYPES = {
   ".html": "text/html",
   ".js": "text/javascript",
@@ -94,7 +98,7 @@ await step("home page loads and the engine starts", async () => {
 });
 
 await step("what-if DCF recomputes in the browser", async () => {
-  await page.goto(`${origin}/stock/ZZTEC/`);
+  await page.goto(`${origin}/stock/${first}/`);
   await page.getByRole("tab", { name: "What-if" }).click();
   const box = page.getByText("DCF value per share with your assumptions").locator("..");
   const value = box.locator("div.text-3xl");
@@ -111,23 +115,32 @@ await step("what-if DCF recomputes in the browser", async () => {
   console.log(`     per-share value ${before} -> ${await value.innerText()} after raising WACC`);
 });
 
-await step("a company without saved answers is analyzed live", async () => {
-  await page.goto(`${origin}/stock/ZQT01/`);
-  await page.getByText("Trust Rating").first().waitFor({ timeout: 60_000 });
-  await page
-    .getByText(/\d+\/100/)
-    .first()
-    .waitFor({ timeout: 240_000 });
-  const h1 = await page.locator("h1").first().innerText();
-  console.log(
-    `     ${h1}: ${(
-      await page
-        .getByText(/\d+\/100/)
-        .first()
-        .innerText()
-    ).trim()}`,
-  );
-});
+if (unsaved) {
+  await step("a company without saved answers is analyzed live", async () => {
+    await page.goto(`${origin}/stock/${unsaved}/`);
+    await page.getByText("Trust Rating").first().waitFor({ timeout: 60_000 });
+    await page
+      .getByText(/\d+\/100/)
+      .first()
+      .waitFor({ timeout: 240_000 });
+    const h1 = await page.locator("h1").first().innerText();
+    console.log(
+      `     ${h1}: ${(
+        await page
+          .getByText(/\d+\/100/)
+          .first()
+          .innerText()
+      ).trim()}`,
+    );
+  });
+} else {
+  await step("a comparison with no saved answer is computed live", async () => {
+    await page.goto(`${origin}/compare/?t=${first},${other}&range=3y`);
+    const row = page.getByRole("row", { name: /Trust Rating/ }).first();
+    await row.waitFor({ timeout: 240_000 });
+    console.log(`     ${first} vs ${other}: ${(await row.innerText()).replace(/\s+/g, " ").trim()}`);
+  });
+}
 
 for (const e of errors) console.log(`     ${e}`);
 await browser.close();
