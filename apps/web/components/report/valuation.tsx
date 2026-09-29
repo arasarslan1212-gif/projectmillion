@@ -237,7 +237,7 @@ function Histogram({ v }: { v: AnySection }) {
   return (
     <div>
       <p className="text-xs text-ink-2">
-        {mc.draws.toLocaleString()} DCF draws (seed {mc.seed}) varying near-term growth (σ{" "}
+        {mc.draws.toLocaleString("en-US")} DCF draws (seed {mc.seed}) varying near-term growth (σ{" "}
         {formatValue(mc.inputs.sigma_growth, "pct")}), target margin (σ{" "}
         {formatValue(mc.inputs.sigma_margin, "pct")}, correlation {mc.inputs.growth_margin_correlation} with
         growth), WACC (σ {formatValue(mc.inputs.sigma_wacc, "pct")}) and terminal growth (σ{" "}

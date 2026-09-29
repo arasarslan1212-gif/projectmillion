@@ -230,6 +230,8 @@ export function PriceChart({
         horzLine: { color: c.axis, labelBackgroundColor: c.ink2 },
       },
       localization: {
+        // the app formats in en-US; the default (navigator.language) throws on tags like "en-US@posix"
+        locale: "en-US",
         priceFormatter: (p: number) => (t.compare ? `${p.toFixed(1)}%` : formatValue(p, "usd_per_share")),
       },
     });
