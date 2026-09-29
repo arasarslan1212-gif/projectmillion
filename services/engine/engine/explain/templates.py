@@ -485,3 +485,111 @@ def gaps(F: Facts) -> list[dict]:
         if f.group == "gaps":
             out.append({"id": fid, "label": f.label, "text": str(f.value), "facts": [fid]})
     return out
+
+
+def premortem(F: Facts) -> dict:
+    """ "It is 12 months later and the stock fell 40%: the likeliest reasons", ranked from today's facts.
+
+    A thought exercise, not a forecast: every reason is a weakness already visible in the data."""
+    if not F.has("premortem.fall", "price"):
+        return {"plain": [], "analyst": [], "reasons": []}
+    cands: list[tuple[float, str, str, list[str]]] = []  # (priority, plain, analyst, facts)
+    px = F.get("price")
+    if F.get("val.rdcf.assessment") == "demanding" and F.has("val.rdcf.implied"):
+        refs = [k for k in ("val.rdcf.history", "val.rdcf.consensus") if F.has(k)]
+        cands.append((9, f"The price already assumed {_implied(F, True)}; the business fell short of that, and "
+                         "the market stopped paying for it.",
+                      f"The price implied {_implied(F, False)}, above the company's record; delivery closer to history "
+                      "would compress the multiple.", ["val.rdcf.implied", "val.rdcf.assessment", *refs]))  # fmt: skip
+    bear = F.get("val.scenario.bear.value")
+    if (
+        bear is not None and px and 0.05 * px < bear < 0.8 * px
+    ):  # a near-zero bear value is a degenerate model
+        cands.append((8, f"Things went the way of the app's bear case, where the model's long-term value is "
+                         f"{fmt(bear, 'usd_per_share')} against {fmt(px, 'usd_per_share')} today.",
+                      f"The bear scenario's value of {fmt(bear, 'usd_per_share')} (vs. {fmt(px, 'usd_per_share')}) played "
+                      "out.", ["val.scenario.bear.value", "price"]))  # fmt: skip
+    n_flags, flag_facts = _n_flags(F)
+    if n_flags:
+        first = next((fid for fid in F.items if fid.startswith("flag.")), None)
+        title = f"“{F.items[first].label.replace('Red flag: ', '')}”" if first else "a warning sign"
+        cands.append((7 + min(n_flags, 3), f"Warning signs the app flagged today ({title} among them) turned into real "
+                                           "problems.",
+                      f"{n_flags} red flag{'s' if n_flags != 1 else ''} (including {title}) materialized.",
+                      flag_facts))  # fmt: skip
+    for pid, sc in [p for p in reversed(_pillars(F)) if p[1] <= 35][:2]:
+        cands.append((6 + (35 - sc) / 35, f"Weakness in {PILLAR_PLAIN.get(pid, pid)} (score {fmt(sc, 'score')}) left "
+                                          "little room for error.",
+                      f"The weak {_lc(_label(F, f'trust.pillar.{pid}'))} pillar ({fmt(sc, 'score')}) proved decisive.",
+                      [f"trust.pillar.{pid}"]))  # fmt: skip
+    lev = F.get("metric.net_debt_to_ebitda")
+    if lev is not None and lev >= 3:
+        cands.append((7, f"Debt of {fmt(lev, 'x')} a year's operating cash earnings magnified a drop in profits.",
+                      f"Leverage of {fmt(lev, 'x')} net debt ÷ EBITDA amplified an earnings decline.",
+                      ["metric.net_debt_to_ebitda"]))  # fmt: skip
+    dd = F.get("risk.max_drawdown_3y")
+    if dd is not None and dd <= -0.35:
+        cands.append((6, f"A fall this size is not unusual for this stock: it dropped {fmt(abs(dd), 'pct', 0)} from a "
+                         "peak within the last three years.",
+                      f"A three-year maximum drawdown of {fmt(abs(dd), 'pct', 0)} shows falls of this size are within "
+                      "its recent range.", ["risk.max_drawdown_3y"]))  # fmt: skip
+    ts = F.get("val.dcf.terminal_share")
+    if ts is not None and ts >= 0.7:
+        cands.append((5, f"Most of the value ({fmt(ts, 'pct', 0)}) depends on results more than ten years away, so a "
+                         "small change in long-run expectations cut it sharply.",
+                      f"With {fmt(ts, 'pct', 0)} of DCF value in the terminal period, a modest de-rating of long-run "
+                      "assumptions has an outsized effect.", ["val.dcf.terminal_share"]))  # fmt: skip
+    if F.has("val.driver.0.label", "val.driver.0.low", "val.driver.0.high"):
+        lab, lo, hi = (F.get(f"val.driver.0.{k}") for k in ("label", "low", "high"))
+        cands.append((4, f"{lab} came in at the weak end of the range, which on its own takes the model's value to "
+                         f"{fmt(min(lo, hi), 'usd_per_share')}.",
+                      f"{lab} at the low end of its sensitivity range cuts the DCF value to "
+                      f"{fmt(min(lo, hi), 'usd_per_share')}.",
+                      ["val.driver.0.label", "val.driver.0.low", "val.driver.0.high"]))  # fmt: skip
+    up = F.get("an.upside_trusted")
+    if up is not None and up < -0.05:
+        cands.append((4, f"The analysts with the best records were right: they already expected a lower price "
+                         f"({fmt(up, 'pct', signed=True)}).",
+                      f"The trusted consensus ({fmt(up, 'pct', signed=True)}) was the better guide.",
+                      ["an.upside_trusted"]))  # fmt: skip
+    si = F.get("own.short_pct")
+    if si is not None and si >= 0.08:
+        cands.append((4, f"Short sellers, who held {fmt(si, 'pct')} of the tradable shares, were proved right.",
+                      f"Short interest of {fmt(si, 'pct')} of float reflected a bearish view that played out.",
+                      ["own.short_pct"]))  # fmt: skip
+    sc3 = F.get("own.share_change_3y")
+    if sc3 is not None and sc3 >= 0.03:
+        cands.append((3, f"The company kept issuing shares ({fmt(sc3, 'pct', signed=True)} a year), shrinking each "
+                         "holder's slice.",
+                      f"Dilution of {fmt(sc3, 'pct', signed=True)} a year eroded per-share value.",
+                      ["own.share_change_3y"]))  # fmt: skip
+    br = F.get("earn.beat_rate")
+    if br is not None and br <= 0.5:
+        cands.append((3, f"Results kept missing expectations, as they did in {fmt(br, 'pct', 0)} beats out of recent "
+                         "quarters.",
+                      f"A weak EPS beat rate ({fmt(br, 'pct', 0)}) continued.", ["earn.beat_rate"]))  # fmt: skip
+    cands.sort(key=lambda c: -c[0])
+    top = cands[:4]
+    intro_p = S("Imagine it is 12 months from now and the stock has fallen 40%. Based on what the data shows today, "
+                "the likeliest explanations are:", "premortem.fall", "val.horizon_months")  # fmt: skip
+    intro_a = S("Pre-mortem, assuming a 40% decline over 12 months; most likely causes given current facts:",
+                "premortem.fall", "val.horizon_months")  # fmt: skip
+    if not top:
+        vol = F.get("risk.volatility_1y")
+        tail = (S(f"No specific weakness stands out; with volatility of {fmt(vol, 'pct', 0)} a year, a fall this large "
+                  "would most likely come from the whole market or from news the data cannot anticipate.",
+                  "risk.volatility_1y") if vol is not None
+                else S("No specific weakness stands out; a fall this large would most likely come from the whole "
+                       "market or from news the data cannot anticipate."))  # fmt: skip
+        return {"plain": [intro_p, tail], "analyst": [intro_a, tail], "reasons": []}
+    tail_facts = ["val.prob_drawdown_20"] if F.has("val.prob_drawdown_20") else []
+    tail = (
+        [S(f"For scale: the app's simulation gives a {fmt(F.get('val.prob_drawdown_20'), 'prob', 0)} chance of a 20% "
+           "fall at some point in the next year.", *tail_facts)]
+        if tail_facts else []
+    )  # fmt: skip
+    return {
+        "plain": [intro_p, *[S(c[1], *c[3]) for c in top], *tail],
+        "analyst": [intro_a, *[S(c[2], *c[3]) for c in top], *tail],
+        "reasons": [{"plain": c[1], "analyst": c[2], "facts": c[3]} for c in top],
+    }

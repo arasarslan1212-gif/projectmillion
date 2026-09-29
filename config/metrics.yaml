@@ -573,3 +573,65 @@ short_interest_pct_float:
 days_to_cover:
   label: Days to cover
   definition: Short interest ÷ average daily volume. How many days of normal trading it would take shorts to buy back.
+
+capital_allocation_score:
+  label: Capital allocation score
+  definition: >-
+    0–100 weighted average of the scorecard components that apply: returns on new investment, buyback timing, dilution,
+    whether payouts were funded by free cash flow, and dividend safety. 70+ Strong, 45–70 Mixed, below 45 Weak. The
+    app's assessment, not part of the Trust Rating.
+  plain: How well management has used the cash the business produced, on a 0–100 scale.
+incremental_roic:
+  label: Return on new capital (5 years)
+  definition: >-
+    Change in NOPAT over the window divided by the change in invested capital: the return earned on the capital added.
+    Compared with the WACC; not meaningful when invested capital barely changed.
+  formula: (NOPAT_end − NOPAT_start) ÷ (invested capital_end − invested capital_start)
+  plain: How much extra profit each extra dollar invested in the business has produced.
+buyback_vs_market:
+  label: Buybacks vs. the market
+  definition: >-
+    The value today of the shares repurchased in each year (at that year's average price) compared with the value
+    today of the same cash invested in the market index at that year's average level. Positive means the buybacks beat
+    simply owning the market.
+  formula: Σ spent × (P_now ÷ P̄_year) ÷ Σ spent × (Index_now ÷ Index̄_year) − 1
+  plain: Whether buying back its own shares worked out better than buying the whole market would have.
+payout_coverage:
+  label: Payouts ÷ free cash flow (5 years)
+  definition: >-
+    Dividends plus buybacks divided by free cash flow over the window. Above 1 means shareholder payouts exceeded the
+    cash the business generated, so they were funded by debt, cash on hand or asset sales.
+  formula: Σ (dividends + buybacks) ÷ Σ FCF
+  plain: Whether dividends and buybacks were paid from the cash the business earned or from borrowing.
+goodwill_to_assets:
+  label: Goodwill ÷ total assets
+  definition: >-
+    Goodwill from past acquisitions as a share of total assets. A large or fast-growing share marks an acquisitive
+    company whose deals are only judged later, through impairments.
+  plain: How much of the company's assets is the premium it paid for past acquisitions.
+
+factor_beta:
+  label: Factor exposure (beta)
+  definition: >-
+    Coefficient from a regression of the stock's weekly returns on the market's and on long-short factor returns
+    (size, value, momentum, quality, low volatility) over three years. A market beta of 1 moves with the market; a
+    positive value beta means it tends to do better when value stocks beat growth stocks. |t| ≥ 2 marks estimates
+    distinguishable from zero.
+  formula: r_stock = α + β_mkt·r_mkt + Σ β_f·r_f + ε (weekly, OLS)
+  plain: How much the stock tends to move with the market and with common investing styles.
+macro_sensitivity:
+  label: Macro sensitivity
+  definition: >-
+    Coefficient on the weekly change in a macro series (10-year yield, credit spread, oil, dollar) in a regression that
+    also includes the market's return, so it measures the reaction beyond the market's own move. Reported per unit
+    change (for example per 1 percentage point of yields). Historical association, not a forecast.
+  formula: r_stock = α + β_mkt·r_mkt + β_macro·Δmacro + ε
+  plain: How the stock has tended to react, beyond the market, when rates, credit, oil or the dollar moved.
+seasonality:
+  label: Month-of-year returns
+  definition: >-
+    Average return in each calendar month over up to ten years, with how often it was positive. With twelve months
+    tested at once, a month counts as significant only if |t| exceeds the Bonferroni-adjusted threshold; most apparent
+    seasonal patterns are noise.
+  plain: Whether the stock has tended to do better or worse in particular months, and whether that is more than chance.
+

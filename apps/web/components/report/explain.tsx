@@ -63,6 +63,7 @@ const GROUP_HOME: Record<string, [string, string]> = {
   ownership: ["ownership", "Ownership"],
   gaps: ["explain-gaps", "Data gaps"],
   triggers: ["explain-triggers", "Triggers (computed for this section)"],
+  premortem: ["explain-premortem", "Pre-mortem"],
 };
 
 const METHOD_BADGE: Record<string, { label: string; tone: "neutral" | "accent" | "warning" }> = {
@@ -72,34 +73,67 @@ const METHOD_BADGE: Record<string, { label: string; tone: "neutral" | "accent" |
 };
 
 /** One sentence that reveals the facts behind it on hover, focus or tap. */
-function Sentences({ block, sents, className }: { block: string; sents?: Sent[]; className?: string }) {
+function Sentence({ block, i, s }: { block: string; i: number; s: Sent }) {
   const { active, setActive } = useExplain();
+  const key = `${block}:${i}`;
+  const set = () => setActive({ key, block, facts: s.facts });
+  return (
+    <span
+      tabIndex={0}
+      onMouseEnter={set}
+      onFocus={set}
+      onClick={set}
+      onKeyDown={(e) => e.key === "Enter" && set()}
+      className={cn(
+        "cursor-help rounded-sm decoration-dotted underline-offset-4 transition-colors hover:underline focus-visible:underline focus-visible:outline-none",
+        active?.key === key && "bg-accent-wash underline",
+      )}
+    >
+      {s.text}
+    </span>
+  );
+}
+
+function Sentences({ block, sents, className }: { block: string; sents?: Sent[]; className?: string }) {
   if (!sents?.length) return <p className="text-sm text-muted">Not enough data for this part.</p>;
   return (
     <p className={cn("text-sm leading-relaxed text-ink", className)}>
-      {sents.map((s, i) => {
-        const key = `${block}:${i}`;
-        const on = active?.key === key;
-        const set = () => setActive({ key, block, facts: s.facts });
-        return (
-          <span key={key}>
-            <span
-              tabIndex={0}
-              onMouseEnter={set}
-              onFocus={set}
-              onClick={set}
-              onKeyDown={(e) => e.key === "Enter" && set()}
-              className={cn(
-                "cursor-help rounded-sm decoration-dotted underline-offset-4 transition-colors hover:underline focus-visible:underline focus-visible:outline-none",
-                on && "bg-accent-wash underline",
-              )}
-            >
-              {s.text}
-            </span>{" "}
-          </span>
-        );
-      })}
+      {sents.map((s, i) => (
+        <span key={i}>
+          <Sentence block={block} i={i} s={s} />{" "}
+        </span>
+      ))}
     </p>
+  );
+}
+
+/** An introduction, a list of points, and closing context ("For scale: …"), each sentence traceable. */
+function SentenceList({ block, sents }: { block: string; sents?: Sent[] }) {
+  if (!sents?.length) return <p className="text-sm text-muted">Not enough data for this part.</p>;
+  const items = sents.map((s, i) => ({ s, i }));
+  const [intro, ...rest] = items;
+  const tail = rest.filter((x) => x.s.text.startsWith("For scale"));
+  const points = rest.filter((x) => !x.s.text.startsWith("For scale"));
+  return (
+    <div className="space-y-1.5 text-sm leading-relaxed text-ink">
+      <p>
+        <Sentence block={block} i={intro.i} s={intro.s} />
+      </p>
+      {points.length > 0 && (
+        <ul className="list-disc space-y-1 pl-5">
+          {points.map((x) => (
+            <li key={x.i}>
+              <Sentence block={block} i={x.i} s={x.s} />
+            </li>
+          ))}
+        </ul>
+      )}
+      {tail.map((x) => (
+        <p key={x.i} className="text-ink-2">
+          <Sentence block={block} i={x.i} s={x.s} />
+        </p>
+      ))}
+    </div>
   );
 }
 
@@ -533,6 +567,13 @@ export function ExplainSection({ e }: { e: AnySection }) {
             hint="The strongest argument for the opposite outcome, built from the same facts."
           >
             <Sentences block="against" sents={s("against")} />
+          </Block>
+          <Block
+            id="premortem"
+            title="Pre-mortem: if the stock fell 40% in a year"
+            hint="A thought exercise, not a forecast: each reason is a weakness already visible in today's data."
+          >
+            <SentenceList block="premortem" sents={s("premortem")} />
           </Block>
           <Block
             id="triggers"

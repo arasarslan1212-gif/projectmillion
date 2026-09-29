@@ -23,7 +23,17 @@ from engine.llm.validate import unsupported_numbers
 
 log = logging.getLogger("engine.explain")
 
-PARTS = ("verdict", "view", "trust_path", "target_path", "pricing_in", "drivers", "against", "confidence")
+PARTS = (
+    "verdict",
+    "view",
+    "trust_path",
+    "target_path",
+    "pricing_in",
+    "drivers",
+    "against",
+    "confidence",
+    "premortem",
+)
 ALWAYS_OK = (0.0, 100.0, 1.0, 12.0)  # "0–100", "/100", "−1 to +1", "12-month"
 _DIRECTIVE = re.compile(
     r"\b(you should|investors should|we recommend|i recommend|buy (the|this) stock|sell (the|this) stock|"
@@ -52,6 +62,7 @@ class Narrative(BaseModel):
     drivers: Part
     against: Part
     confidence: Part
+    premortem: Part
 
 
 SYSTEM = """You write the explanation section of an educational stock-analysis app. The app's numbers are computed by

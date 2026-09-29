@@ -39,9 +39,17 @@ def recalibrate() -> None:
     log.info("recalibration: %s", res["reason"])
 
 
+def evaluate_alerts() -> None:
+    """Check the watchlist's alert rules and add new events to the inbox."""
+    from engine.alerts.service import evaluate
+
+    log.info("alerts: %s", evaluate())
+
+
 JOBS: list[tuple[str, dict, object]] = [
     ("refresh_symbols", {"hour": 5, "minute": 7}, refresh_symbols),
     ("score_analysts", {"hour": 6, "minute": 13}, score_analysts),
     ("score_outcomes", {"hour": 6, "minute": 41}, score_outcomes),
     ("recalibrate", {"day_of_week": "sun", "hour": 7, "minute": 3}, recalibrate),
+    ("evaluate_alerts", {"hour": 7, "minute": 29}, evaluate_alerts),
 ]

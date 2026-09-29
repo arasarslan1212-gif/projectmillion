@@ -10,6 +10,7 @@ import { DISCLAIMER_SHORT } from "@/lib/legal";
 import { pushRecent } from "@/lib/recent";
 import type { AnySection } from "@/lib/types";
 import { AnalystsSection } from "./analysts";
+import { CapitalSection } from "./capital";
 import { DividendsSection } from "./dividends";
 import { EarningsSection } from "./earnings";
 import { ExplainSection, ModeToggle, VerdictCard } from "./explain";
@@ -20,6 +21,7 @@ import { SnapshotStats } from "./overview";
 import { OverviewSection } from "./overview-section";
 import { OwnershipSection } from "./ownership";
 import { PeersSection } from "./peers";
+import { QuantSection } from "./quant";
 import { RiskSection } from "./risk";
 import { TrustSection } from "./trust";
 import { ValuationSection } from "./valuation";
@@ -36,8 +38,10 @@ const NAV = [
   { id: "earnings", label: "Earnings" },
   { id: "dividends", label: "Dividends" },
   { id: "ownership", label: "Ownership" },
+  { id: "capital", label: "Capital allocation" },
   { id: "fundamentals", label: "Fundamentals" },
   { id: "risk", label: "Risk & red flags" },
+  { id: "quant", label: "Quant" },
   { id: "peers", label: "Peers" },
 ];
 
@@ -75,7 +79,9 @@ export function ReportPage({ ticker, frozen }: { ticker: string; frozen?: Frozen
   const earnings = pick(useSection(src, "earnings", version), frozen, "earnings");
   const dividends = pick(useSection(src, "dividends", version), frozen, "dividends");
   const ownership = pick(useSection(src, "ownership", version), frozen, "ownership");
+  const capital = pick(useSection(src, "capital", version), frozen, "capital");
   const risk = pick(useSection(src, "risk", version), frozen, "risk");
+  const quant = pick(useSection(src, "quant", version), frozen, "quant");
   const fundamentals = pick(useSection(src, "fundamentals", version), frozen, "fundamentals");
   const explain = pick(useSection(src, "explain", version), frozen, "explain");
   const [peerOverride, setPeerOverride] = useState<string[] | null>(null);
@@ -293,6 +299,16 @@ export function ReportPage({ ticker, frozen }: { ticker: string; frozen?: Frozen
           {ownership.data && <OwnershipSection o={ownership.data} />}
         </SectionShell>
         <SectionShell
+          id="capital"
+          title="Capital allocation"
+          subtitle="Returns on new investment, buyback timing, dilution, payouts and dividends: how management used the cash"
+          data={capital.data}
+          loading={capital.loading}
+          error={capital.error}
+        >
+          {capital.data && <CapitalSection c={capital.data} />}
+        </SectionShell>
+        <SectionShell
           id="fundamentals"
           title="Fundamentals"
           subtitle="Statements, ratios, growth, quality and sector KPIs from SEC filings"
@@ -311,6 +327,16 @@ export function ReportPage({ ticker, frozen }: { ticker: string; frozen?: Frozen
           error={risk.error}
         >
           {risk.data && <RiskSection r={risk.data} />}
+        </SectionShell>
+        <SectionShell
+          id="quant"
+          title="Quantitative views"
+          subtitle="Factor exposures, macro sensitivity and month-of-year patterns, with their statistical reliability"
+          data={quant.data}
+          loading={quant.loading}
+          error={quant.error}
+        >
+          {quant.data && <QuantSection q={quant.data} />}
         </SectionShell>
         <SectionShell id="peers" title="Peers" data={peers.data} loading={peers.loading} error={peers.error}>
           {peers.data && (

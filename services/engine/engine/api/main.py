@@ -270,6 +270,66 @@ def snapshot(token: str) -> dict:
     return out
 
 
+class WatchlistBody(BaseModel):
+    tickers: list[str] = Field(default_factory=list, max_length=50)
+
+
+@app.put("/api/watchlist")
+def put_watchlist(body: WatchlistBody) -> dict:
+    """Sync the browser's watchlist to the server so alerts can be evaluated for it (single list per deployment)."""
+    from engine.alerts.service import sync_watchlist
+
+    return {"tickers": sync_watchlist(body.tickers)}
+
+
+@app.get("/api/alerts")
+def alerts() -> dict:
+    from engine.alerts.service import inbox
+
+    return inbox()
+
+
+@app.get("/api/alerts/unread")
+def alerts_unread() -> dict:
+    from engine.alerts.service import unread_count
+
+    return {"unread": unread_count()}
+
+
+@app.post("/api/alerts/run")
+def alerts_run() -> dict:
+    """Evaluate the alert rules for the watchlist now (the scheduler also runs this daily)."""
+    from engine.alerts.service import evaluate
+
+    return evaluate()
+
+
+class ReadBody(BaseModel):
+    ids: list[int] | None = None
+
+
+@app.post("/api/alerts/read")
+def alerts_read(body: ReadBody) -> dict:
+    from engine.alerts.service import mark_read
+
+    return {"marked": mark_read(body.ids)}
+
+
+class RuleBody(BaseModel):
+    enabled: bool
+
+
+@app.put("/api/alerts/rules/{kind}")
+def alerts_rule(kind: str, body: RuleBody) -> dict:
+    from engine.alerts.service import rules, set_rule
+
+    try:
+        set_rule(kind, body.enabled)
+    except KeyError:
+        raise HTTPException(404, detail=f"unknown alert kind '{kind}'") from None
+    return {"rules": rules()}
+
+
 @app.get("/api/meta/methodology")
 def methodology() -> dict:
     """The Methodology page: every parameter from the engine configuration, with its documented meaning."""

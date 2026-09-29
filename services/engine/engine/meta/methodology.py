@@ -36,6 +36,15 @@ SECTIONS: list[tuple[str, str, str]] = [
     ("earnings", "Earnings", "Windows for reactions, drift and estimate revisions."),
     ("dividends", "Dividend safety", "Components, weights and anchors of the dividend safety score."),
     ("ownership", "Ownership and insiders", "Look-back windows and the insider cluster rule."),
+    ("capital", "Capital allocation scorecard",
+     "How management used the cash the business produced: returns on new capital, buyback timing against the "
+     "market, dilution, payouts against free cash flow and dividend safety. A separate section, not a Trust Rating "
+     "pillar."),
+    ("quant", "Quantitative views",
+     "Factor exposures and macro sensitivity from weekly-return regressions, and month-of-year returns with a "
+     "multiple-testing correction. Every estimate is shown with its t-statistic."),
+    ("alerts", "Alerts",
+     "What the daily alert job checks for the watchlist, and the thresholds it uses."),
     ("llm", "Language model use",
      "Where a language model writes text, what it may see, and the budget. Every number it writes is checked "
      "against the facts it cites; failures fall back to templates."),

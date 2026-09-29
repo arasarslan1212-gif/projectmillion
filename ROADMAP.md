@@ -16,7 +16,8 @@ What is not built yet, and why. Items are grouped by what blocks them; within a 
 ## Analysis
 
 - **Point-in-time universe for backtests.** Include companies that were later delisted (from SEC filer histories) to reduce survivorship bias, instead of only noting it.
-- **10-K / 10-Q text diff** of Risk Factors and MD&A, with an LLM summary checked against the diff. Parsing is feasible from EDGAR HTML; it needs real filings to tune.
+- **10-K diff beyond Risk Factors.** The Item 1A diff is built (D-060). Still to do: MD&A and 10-Q diffs, and an optional LLM summary checked against the diff. Tune the paragraph matching on real filings, whose risk factors use bold headings over several paragraphs.
+- **M&A track record.** Tag goodwill impairments and acquisition prices per deal, to judge acquisitions after the fact; the capital-allocation scorecard shows M&A for information only today.
 - **Event studies:** the stock's average reaction to past events of the same 8-K item type.
 - **Executive pay alignment** from DEF 14A (pay vs. total shareholder return).
 - **Supply-chain and customer-concentration extraction** from 10-K text (today: a keyword-based concentration red flag).
@@ -25,8 +26,8 @@ What is not built yet, and why. Items are grouped by what blocks them; within a 
 
 ## Product
 
-- **Accounts and server-side watchlists**, so watchlists and alerts follow a user across devices (today both live in one browser plus the single-user server list).
-- **Alert delivery** by email or push (today alerts appear in the in-app inbox only).
+- **Accounts**, so watchlists and alerts follow a user across devices. Today the watchlist lives in the browser and is synced to a single server-side list per deployment.
+- **Alert delivery** by email or push. Alerts are evaluated daily into an in-app inbox (D-061).
 - **Server-rendered PDF** (headless browser) for a consistent file; today PDF export uses the browser's print dialog with a print stylesheet.
 - **Portfolio weights** in the watchlist view (today equal weights, labeled as an illustration).
 - **Non-US listings.** Out of scope per the spec; the provider layer would need non-SEC fundamentals.

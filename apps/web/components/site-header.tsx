@@ -3,6 +3,7 @@
 import { Moon, Sun } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useUnreadAlerts } from "@/lib/alerts";
 import { useHealth } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { useTheme } from "@/lib/store";
@@ -12,6 +13,7 @@ const NAV = [
   { href: "/", label: "Search" },
   { href: "/compare", label: "Compare" },
   { href: "/watchlist", label: "Watchlist" },
+  { href: "/alerts", label: "Alerts" },
   { href: "/track-record", label: "Track record" },
   { href: "/methodology", label: "Methodology" },
   { href: "/glossary", label: "Glossary" },
@@ -57,6 +59,7 @@ export function SyntheticBanner() {
 
 export function SiteHeader() {
   const path = usePathname();
+  const unread = useUnreadAlerts();
   return (
     <header className="no-print border-b border-line bg-surface">
       <SyntheticBanner />
@@ -76,6 +79,12 @@ export function SiteHeader() {
               )}
             >
               {n.label}
+              {n.href === "/alerts" && unread > 0 && (
+                <span className="ml-1 rounded-full bg-accent-ink px-1.5 py-px text-[10px] font-semibold text-surface">
+                  {unread}
+                  <span className="sr-only"> unread</span>
+                </span>
+              )}
             </Link>
           ))}
         </nav>

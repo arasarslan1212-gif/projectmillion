@@ -20,7 +20,7 @@ _SCALE = {
 }  # fmt: skip
 
 _NUM = re.compile(
-    r"(?P<sign>[-+−–])?(?P<cur>\$)?(?P<num>\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)"
+    r"(?P<bound>[<>≥≤]\s?)?(?P<sign>[-+−–])?(?P<cur>\$)?(?P<num>\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)"
     r"(?:\s?(?P<scale>thousand|million|billion|trillion|mn|bn|tn|[kKmMbBtT])(?![A-Za-z]))?"
     r"(?:\s?(?P<unit>%|×|x(?![A-Za-z])|pp(?![A-Za-z])|percentage points?|bps|basis points))?",
 )
@@ -33,6 +33,7 @@ class Num:
     kind: str  # pct | bps | multiple | money | plain
     decimals: int  # decimals as written (in the written scale)
     scale: float  # 1, 1e3, 1e6, 1e9 or 1e12 as written
+    bound: str = ""  # ">" or "<" when written as a bound (">99%")
 
 
 def extract_numbers(text: str) -> list[Num]:
@@ -59,7 +60,8 @@ def extract_numbers(text: str) -> list[Num]:
             else "money" if mt.group("cur")
             else "plain"
         )  # fmt: skip
-        out.append(Num(mt.group(0).strip(), v, kind, dec, scale))
+        b = (mt.group("bound") or "").strip().replace("≥", ">").replace("≤", "<")
+        out.append(Num(mt.group(0).strip(), v, kind, dec, scale, b))
     return out
 
 
@@ -87,6 +89,11 @@ def allowed_values(facts: list[dict]) -> list[tuple[float, str]]:
 def matches(n: Num, allowed: list[tuple[float, str]]) -> bool:
     for v, unit in allowed:
         pct_like = unit in ("pct", "prob")
+        if n.bound and n.kind == "pct" and pct_like:  # ">99%" is true of 0.9995, "<1%" of 0.003
+            x = abs(v) * 100
+            if (n.bound == ">" and x >= abs(n.value)) or (n.bound == "<" and x <= abs(n.value)):
+                return True
+            continue
         if n.kind == "pct":
             if _consistent(n.value, n.decimals, 1.0, v * 100 if pct_like else v):
                 return True

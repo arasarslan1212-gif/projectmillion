@@ -19,7 +19,16 @@ def fmt(value, unit: str, digits: int | None = None, signed: bool = False) -> st
     if isinstance(value, str):
         return value
     sign = "+" if signed and value > 0 else ""
-    if unit in ("pct", "prob"):
+    if unit == "prob":
+        # a model probability is never shown as certain (same rule as the web formatter)
+        d = 1 if digits is None else digits
+        edge = 0.5 * 10 ** -(d + 2)
+        if value >= 1 - edge:
+            return f">{100 - 10**-d:.{d}f}%"
+        if value < edge:
+            return f"<{10**-d:.{d}f}%"
+        s = f"{sign}{value * 100:.{d}f}%"
+    elif unit == "pct":
         d = 1 if digits is None else digits
         s = f"{sign}{value * 100:.{d}f}%"
     elif unit == "usd_per_share":
@@ -233,6 +242,9 @@ def build_facts(ctx: ReportContext, s: dict[str, dict | None]) -> Facts:
             F.add(f"val.{k}", label, tg.get(k), unit, "valuation", "app valuation engine", as_of)
         F.add("val.range_coverage", "Coverage of the P10–P90 range", 0.8, "pct", "valuation", digits=0)
         F.add("val.horizon_months", "Target horizon (months)", 12, "count", "valuation")
+        F.add(
+            "premortem.fall", "Hypothetical fall used in the pre-mortem", -0.4, "pct", "premortem", digits=0
+        )
         F.add("val.intrinsic", "Long-term intrinsic value", v.get("intrinsic"), "usd_per_share", "valuation")
         w = v.get("wacc") or {}
         F.add("val.wacc", "WACC", w.get("value"), "pct", "valuation")

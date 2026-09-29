@@ -314,6 +314,17 @@ BENCHMARKS = {
     "ZZSCM": ("Synthetic Communication Sector Fund", "communication", 1.0),
 }
 
+# Synthetic factor funds for the factor-exposure regressions: (name, market beta, factor loadings). They use their own
+# random generator, so adding them never changes any other synthetic series.
+FACTOR_FUNDS = {
+    "ZZFSC": ("Synthetic Small-Cap Fund", 1.1, {"size": 1.0}),
+    "ZZFVL": ("Synthetic Value Fund", 0.95, {"value": 0.5}),
+    "ZZFGR": ("Synthetic Growth Fund", 1.1, {"value": -0.5}),
+    "ZZFMO": ("Synthetic Momentum Fund", 1.05, {"momentum": 1.0}),
+    "ZZFQU": ("Synthetic Quality Fund", 0.95, {"quality": 1.0}),
+    "ZZFLV": ("Synthetic Low Volatility Fund", 0.7, {"low_vol": 1.0}),
+}
+
 FIRMS = [
     ("Synthetic Bank Alpha Securities", "buy_hold_sell"),
     ("Synthetic Beta Capital Markets", "overweight"),
@@ -789,6 +800,7 @@ class World:
             self._schedule_filings(co)
             self._price_path(co)
         self.benchmarks = self._benchmarks()
+        self.benchmarks.update(self._factor_funds())
         self.analysts = self._analysts()
         self.actions = self._analyst_actions()
         for co in self.companies.values():
@@ -876,6 +888,22 @@ class World:
         for t, (_, _sector, beta) in BENCHMARKS.items():
             idio = np.cumsum(self.rng.normal(0, 0.006, len(self.days)))
             lvl = beta * self.market + (0.3 * idio if t != "ZZMKT" else 0.0)
+            out[t] = np.round(100 * np.exp(lvl - lvl[0]), 4)
+        return out
+
+    def _factor_funds(self) -> dict[str, np.ndarray]:
+        rng = np.random.default_rng(20260925)  # dedicated stream: the rest of the world is unaffected
+        n = len(self.days)
+        factors = {
+            k: np.cumsum(rng.normal(0, 0.004, n)) for k in ("size", "value", "momentum", "quality", "low_vol")
+        }
+        out = {}
+        for t, (_, beta, loads) in FACTOR_FUNDS.items():
+            lvl = (
+                beta * self.market
+                + sum(w * factors[f] for f, w in loads.items())
+                + np.cumsum(rng.normal(0, 0.002, n))
+            )
             out[t] = np.round(100 * np.exp(lvl - lvl[0]), 4)
         return out
 

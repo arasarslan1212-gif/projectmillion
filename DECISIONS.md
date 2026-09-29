@@ -282,3 +282,67 @@ On the synthetic market (local provider, SQLite), with all 15 sections requested
 - **Cached:** under 0.05 s.
 
 Both are within the spec (cold < 15 s, cached < 3 s), and sections render progressively as they arrive. Real providers add network latency to cold loads; the per-provider rate limiters and cache TTLs bound it, but it has not been measured, because the providers are unreachable from the build environment.
+
+## M10: Extras
+
+### D-057: Pre-mortem, grounded in today's facts
+The Explain section adds a pre-mortem: "it is 12 months later and the stock has fallen 40%; the likeliest explanations". It picks up to four reasons, ranked by a fixed priority, from weaknesses already visible in the facts:
+- a demanding market-implied expectation;
+- a bear case well below the price;
+- red flags;
+- pillars scoring 35 or less;
+- leverage above 3× EBITDA;
+- a 3-year drawdown already beyond 35%;
+- a DCF mostly in its terminal value;
+- the top DCF driver at its low end;
+- a negative trusted consensus;
+- high short interest;
+- dilution;
+- a low beat rate.
+
+It closes with the model's own chance of a 20% fall, for scale. The 40% itself is a cited fact (`premortem.fall`), so the whole part passes the same number validator as every other narrative. A bear case below 5% of the price is treated as a degenerate model output and never offered as a reason. The part is labeled a thought exercise, not a forecast.
+
+The validator now understands bounds: ">99%" is accepted when the fact is at least 99%, and "<1%" when it is at most 1%. Probabilities print as ">99%" rather than "100%" in Python as they already did on the web.
+
+### D-058: Capital allocation is a separate scorecard, not a Trust Rating pillar
+The scorecard covers the last five fiscal years. Components, each scored between configured anchors:
+- **Return on new capital:** ΔNOPAT ÷ Δinvested capital, relative to the WACC.
+- **Buyback timing:** the value today of the shares bought each year, compared with the same cash put in the market index that year.
+- **Dilution:** 3-year share-count CAGR and SBC as a share of revenue.
+- **Payouts vs. free cash flow:** dividends plus buybacks against the free cash flow generated.
+- **Dividend safety:** reused from the Dividends section.
+
+Components that do not apply are skipped with the reason, and the score averages the rest:
+- **Financials:** return on new capital is not meaningful.
+- **Small capital changes:** it is not meaningful when invested capital barely changed or shrank.
+- **Companies without a dividend or buybacks:** those components are skipped, which is not a negative.
+
+M&A is shown for information only (goodwill trend and acquisitions when tagged), because whether deals paid off shows only later through impairments.
+
+Keeping the scorecard out of the Trust Rating avoids counting leverage or dividends twice, and leaves the "management credibility" pillar for what it is defined as (guidance vs. delivery), which still lacks data.
+
+### D-059: Quantitative views report their reliability
+- **Factor exposures:** OLS of three years of weekly log returns on the market and five long-short factor spreads (size IWM−SPY, value IWD−IWF, momentum MTUM−SPY, quality QUAL−SPY, low volatility USMV−SPY).
+- **Macro sensitivity:** for each series, regress on the market and the series' weekly change, so the coefficient is the reaction beyond the market. Series: 10-year yield, Baa spread, WTI oil, broad dollar.
+- **Seasonality:** average returns by calendar month over up to ten years. A month is flagged only past a Bonferroni-adjusted threshold (|t| ≥ 2.87 for 12 months at α = 5%).
+
+Every estimate shows its t-statistic. Estimates below |t| 2 are faded and labeled "n.s." or "no reliable link" instead of being narrated as findings.
+
+On synthetic data the factor funds are synthetic too. They are generated with their own random stream so that adding them changed no existing synthetic series, and synthetic stocks do not load on them, so the section correctly finds no style tilts.
+
+### D-060: 10-K risk-factor diff without reproducing filings
+Item 1A is located in the latest and previous 10-K; the longest candidate wins, which skips the table of contents. It is split into paragraphs, and paragraphs are matched by word overlap (Jaccard ≥ 0.5 is the same risk; below 0.9 counts as substantially reworded). The UI lists added, dropped and reworded risks by their first sentence only, quoted, with links to both filings.
+
+A language-model summary of the diff is left for later (ROADMAP): the list of changes is already short and exact.
+
+### D-061: Alerts: a single-user inbox, evaluated server-side
+The browser's watchlist is synced to one server-side list per deployment (the app has no accounts), so a daily job can evaluate alerts.
+
+Rules:
+- the price leaving, or re-entering, the app's 80% range from its latest stored estimate;
+- a "what would change the view" trigger being crossed (thresholds are remembered on first evaluation and refreshed after firing, so an alert does not repeat daily);
+- a new insider cluster buy;
+- an upgrade or downgrade by an analyst with a Trust Score of 70 or more;
+- a new 8-K, with its item descriptions.
+
+Each event links to its evidence and is stored once. A newly watched stock is checked back 60 days. Rules can be switched off per kind. Delivery is in-app only (email and push are on the ROADMAP), and alerts describe what changed, never what to do.

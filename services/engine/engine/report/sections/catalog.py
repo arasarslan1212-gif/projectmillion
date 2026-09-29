@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from engine.report.sections import (
     analysts,
+    capital,
     chart,
     company,
     dividends,
@@ -15,6 +16,7 @@ from engine.report.sections import (
     overview,
     ownership,
     peers,
+    quant,
     risk,
     trust,
     valuation,
@@ -32,8 +34,10 @@ SECTIONS = [
     ("earnings", earnings.build),
     ("dividends", dividends.build),
     ("ownership", ownership.build),
+    ("capital", capital.build),
     ("explain", explain.build),
     ("fundamentals", fundamentals.build),
     ("risk", risk.build),
+    ("quant", quant.build),
     ("peers", peers.build),
 ]

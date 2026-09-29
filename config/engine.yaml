@@ -418,6 +418,61 @@ ownership:
   insider_lookback_months: 24
   cluster_window_days: 30         # cluster buying: at least this many distinct insiders buying
   cluster_min_insiders: 3         #   on the open market within the window
+# Capital allocation scorecard: how management has used the cash the business produced. Shown as its own section;
+# it is not a Trust Rating pillar, so it never double-counts balance-sheet or dividend metrics already scored there.
+capital:
+  years: 5                        # look-back window in fiscal years
+  # component scores are linear between anchors [value scoring 0, value scoring 100]
+  anchors:
+    incremental_roic_spread: [-0.05, 0.10]  # (change in NOPAT ÷ change in invested capital) − WACC
+    buyback_vs_market: [-0.30, 0.30]        # buybacks' value today vs. the same cash put in the market index
+    share_change_3y: [0.05, -0.02]          # net share-count CAGR: dilution scores low, net reduction high
+    sbc_pct_revenue: [0.15, 0.01]           # stock-based compensation as % of revenue
+    payout_coverage: [1.5, 0.6]             # dividends + buybacks ÷ free cash flow over the window
+  min_capital_change: 0.05        # invested capital must change by this share for incremental ROIC to be meaningful
+  min_buybacks_pct_mcap: 0.005    # buybacks below this share of market cap over the window count as "none"
+  weights: {reinvestment: 0.30, buybacks: 0.20, dilution: 0.20, payouts: 0.15, dividends: 0.15}
+  levels: [[70, "Strong"], [45, "Mixed"], [0, "Weak"]]
+
+# Quantitative views: factor exposures, macro sensitivity and seasonality, from weekly/monthly returns.
+quant:
+  window_weeks: 156               # three years of weekly returns for the regressions
+  min_weeks: 60
+  t_significant: 2.0              # |t| above this counts as a statistically meaningful exposure
+  # Factors are long-short return spreads between two funds (long leg, short leg); the market factor is the
+  # market benchmark itself. Synthetic mode uses synthetic funds with the same roles.
+  factors:
+    size: [IWM, SPY]
+    value: [IWD, IWF]
+    momentum: [MTUM, SPY]
+    quality: [QUAL, SPY]
+    low_vol: [USMV, SPY]
+  synthetic_factors:
+    size: [ZZFSC, ZZMKT]
+    value: [ZZFVL, ZZFGR]
+    momentum: [ZZFMO, ZZMKT]
+    quality: [ZZFQU, ZZMKT]
+    low_vol: [ZZFLV, ZZMKT]
+  # FRED series; `change`: diff (level change, reported per `per` units) or pct (percent change, per `per`)
+  macro:
+    DGS10: {label: "10-year Treasury yield", change: diff, per: 1.0, unit: "percentage point"}
+    BAA10Y: {label: "Corporate credit spread (Baa)", change: diff, per: 1.0, unit: "percentage point"}
+    DCOILWTICO: {label: "Oil price (WTI)", change: pct, per: 0.10, unit: "10% rise"}
+    DTWEXBGS: {label: "US dollar (broad index)", change: pct, per: 0.05, unit: "5% rise"}
+  seasonality_years: 10
+  seasonality_alpha: 0.05         # significance across all 12 months together (Bonferroni: 0.05 ÷ 12 per month)
+
+# Alerts for watched stocks, evaluated by a daily job (and on demand) into an in-app inbox.
+alerts:
+  kinds:
+    band: "Price left or re-entered the app's 80% range"
+    trigger: "A 'what would change the view' trigger was crossed"
+    insider_cluster: "Insider cluster buy"
+    analyst_change: "Upgrade or downgrade by a high-trust analyst"
+    filing_8k: "New 8-K filing"
+  high_trust_analyst: 70          # Analyst Trust Score at or above which a rating change alerts
+  catch_up_days: 60               # when a stock is first watched, events from this many days back are included
+
 # ---------------------------------------------------------------------------------------
 # News and sentiment. Stories are clustered, classified (LLM, else keyword rules), and aggregated.
 news:

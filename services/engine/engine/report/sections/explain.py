@@ -49,6 +49,7 @@ def build(ctx: ReportContext) -> dict:
         "drivers": templates.drivers(F),
         "against": templates.against(F),
         "confidence": templates.confidence(F),
+        "premortem": templates.premortem(F),
     }
     cases = templates.cases(F)
     gaps = templates.gaps(F)

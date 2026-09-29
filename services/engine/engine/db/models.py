@@ -377,3 +377,8 @@ class AlertEvent(Base):
     fired_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
     message: Mapped[str] = mapped_column(Text)
     seen: Mapped[bool] = mapped_column(Boolean, default=False)
+    kind: Mapped[str | None] = mapped_column(String(40))
+    title: Mapped[str | None] = mapped_column(Text)
+    url: Mapped[str | None] = mapped_column(Text)
+    occurred_on: Mapped[date | None] = mapped_column(Date)
+    key: Mapped[str | None] = mapped_column(String(200), index=True)  # dedupe: one event per underlying fact

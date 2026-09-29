@@ -18,6 +18,15 @@ from engine.report.metric import metric, section
 from engine.report.sections.trust import flags
 
 
+def _risk_factor_changes(ctx: ReportContext) -> dict:
+    from engine.analysis.filing_diff import risk_factor_changes
+
+    try:
+        return risk_factor_changes(ctx)
+    except Exception as exc:  # the diff is an extra; never fail the risk section over it
+        return {"status": "missing", "reason": f"could not compare the filings ({type(exc).__name__})"}
+
+
 def build(ctx: ReportContext) -> dict:
     px = ctx.prices
     if px.empty:
@@ -133,6 +142,7 @@ def build(ctx: ReportContext) -> dict:
             "values": [float(x) if not np.isnan(x) else None for x in under.to_numpy()],
         },
         red_flags=fl,
+        risk_factor_changes=_risk_factor_changes(ctx),
         notes=[
             "Risk statistics use total-return (dividend-adjusted) prices.",
             f"Market benchmark: {mkt_label}.",

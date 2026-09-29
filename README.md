@@ -20,9 +20,10 @@ With Docker: `cp .env.example .env && docker compose up` starts PostgreSQL, the 
 | Page | What it shows |
 |---|---|
 | `/` | Search with autocomplete, recently viewed, watchlist |
-| `/stock/[ticker]` | The report. Header badges (Trust Rating, the app's P10/P50/P90 target, confidence, all-analyst and trusted consensus), a fact-checked Verdict, and sections for the snapshot, overview, price chart with overlays, Trust Rating, price target and valuation (with DCF what-if sliders), Explain, analysts, news, earnings, dividends, ownership, fundamentals, risk and peers. Plain/Analyst toggle, Share link, PDF (print) |
+| `/stock/[ticker]` | The report. Header badges (Trust Rating, the app's P10/P50/P90 target, confidence, all-analyst and trusted consensus), a fact-checked Verdict, and sections for the snapshot, overview, price chart with overlays, Trust Rating, price target and valuation (with DCF what-if sliders), Explain (including a pre-mortem), analysts, news, earnings, dividends, ownership, capital allocation, fundamentals, risk (including what changed in the 10-K risk factors), quantitative views (factor exposures, macro sensitivity, seasonality) and peers. Plain/Analyst toggle, Share link, PDF (print) |
 | `/compare?t=A,B,C` | Two to four stocks side by side: scores, targets, pillars, key metrics, indexed price chart, pillar radar |
 | `/watchlist` | Watched stocks with scores and risk, and an equal-weight aggregate (volatility, correlation, sector mix) |
+| `/alerts` | An inbox for the watchlist: price leaving the app's range, view-change triggers, insider cluster buys, high-trust analyst rating changes, new 8-Ks |
 | `/s/[token]` | A shared report, frozen as it was on the day, later showing how its estimate turned out |
 | `/track-record` | How past estimates held up (backtest until live history matures), with the recalibration log |
 | `/methodology`, `/glossary` | Every parameter, generated from `config/engine.yaml`; every metric definition |

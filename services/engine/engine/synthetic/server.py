@@ -22,6 +22,7 @@ from engine.fundamentals.concepts import LINE_ITEMS
 from engine.synthetic.world import (
     AS_OF,
     BENCHMARKS,
+    FACTOR_FUNDS,
     SPLIT_DATE,
     SPLIT_RATIO,
     Company,
@@ -193,6 +194,10 @@ class SyntheticServer:
             ]
             data += [
                 [9999000 + i, name, t, "NYSE Arca"] for i, (t, (name, _, _)) in enumerate(BENCHMARKS.items())
+            ]
+            data += [
+                [9998000 + i, name, t, "NYSE Arca"]
+                for i, (t, (name, _, _)) in enumerate(FACTOR_FUNDS.items())
             ]
             return _json({"fields": ["cik", "name", "ticker", "exchange"], "data": data})
         if path.startswith("/submissions/CIK"):
@@ -945,7 +950,7 @@ class SyntheticServer:
         co = self.w.companies.get(sym)
         return {
             "symbol": sym,
-            "name": co.spec.name if co else BENCHMARKS[sym][0],
+            "name": co.spec.name if co else (BENCHMARKS.get(sym) or FACTOR_FUNDS[sym])[0],
             "price": c,
             "changePercentage": round((c / p - 1) * 100, 4),
             "change": round(c - p, 4),
