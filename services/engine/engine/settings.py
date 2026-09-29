@@ -27,6 +27,8 @@ class Settings(BaseSettings):
     record_set: str = "recorded"
 
     database_url: str = f"sqlite:///{REPO_ROOT / 'services' / 'engine' / 'dev.db'}"
+    # WAL lets the API read while jobs write. The in-browser engine turns it off (no shared memory there).
+    sqlite_wal: bool = True
     config_path: Path = REPO_ROOT / "config" / "engine.yaml"
     metrics_path: Path = REPO_ROOT / "config" / "metrics.yaml"
 

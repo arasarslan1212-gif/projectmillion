@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { staticFile } from "./static";
+import { isStateful, noteEngineChange, staticFile } from "./static";
 
 // The file names mirror services/engine/tests/test_export_static.py, which checks the exporter writes them.
 describe("staticFile", () => {
@@ -23,6 +23,15 @@ describe("staticFile", () => {
     expect(staticFile("/snapshot/abc123")).toBe("snapshot/abc123.json");
     expect(staticFile("/alerts")).toBe("alerts/inbox.json");
     expect(staticFile("/alerts/unread")).toBe("alerts/unread.json");
+  });
+  it("leaves custom queries and refreshed reports to the engine", () => {
+    expect(staticFile("/report/ZZTEC/section/peers?peers=ZQT01,ZQT02")).toBeNull();
+    expect(staticFile("/report/ZZREI/section/headline")).toBe("report/ZZREI/headline.json");
+    noteEngineChange("POST", "/report/zzrei/refresh");
+    expect(staticFile("/report/ZZREI/section/headline")).toBeNull();
+    expect(staticFile("/report/ZZUTL/section/headline")).toBe("report/ZZUTL/headline.json");
+    expect(isStateful("/alerts/unread")).toBe(true);
+    expect(isStateful("/compare?tickers=A,B")).toBe(false);
   });
   it("has no answer for requests the demo can't serve", () => {
     expect(staticFile("/report/ZZTEC/valuation/whatif")).toBeNull();

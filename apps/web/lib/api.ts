@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { STATIC_DEMO, staticFile, staticUrl } from "./static";
+import { engineReady, engineRequest } from "./engine-client";
+import { BROWSER_ENGINE, STATIC_DEMO, isStateful, noteEngineChange, staticFile, staticUrl } from "./static";
 import type { AnySection, Definition, Health, SearchResult } from "./types";
 
 const BASE = "/api/engine";
@@ -16,14 +17,32 @@ export class ApiError extends Error {
 }
 
 async function getStatic<T>(path: string, init?: RequestInit): Promise<T> {
-  if (init?.method && init.method !== "GET")
-    throw new ApiError(501, "This action needs the live engine and is not part of the static demo.");
-  const file = staticFile(path);
-  if (!file) throw new ApiError(404, "Not part of the static demo.");
-  const r = await fetch(staticUrl(file), { signal: init?.signal });
-  if (!r.ok)
+  const method = (init?.method ?? "GET").toUpperCase();
+  const file = method === "GET" ? staticFile(path) : null;
+  const askEngine = BROWSER_ENGINE && (!file || (isStateful(path) && engineReady()));
+  if (file && !askEngine) {
+    const r = await fetch(staticUrl(file), { signal: init?.signal });
+    if (r.ok) return (await r.json()) as T;
+  }
+  if (!BROWSER_ENGINE) {
+    if (method !== "GET")
+      throw new ApiError(501, "This action needs the live engine and is not part of the static demo.");
     throw new ApiError(404, "Not part of the static demo, which covers the six synthetic example stocks.");
-  return (await r.json()) as T;
+  }
+  const r = await engineRequest(method, path, typeof init?.body === "string" ? init.body : undefined);
+  if (init?.signal?.aborted) throw new DOMException("The request was aborted.", "AbortError");
+  if (r.status >= 400) {
+    let msg = `Request failed (${r.status})`;
+    try {
+      const d = JSON.parse(r.text)?.detail;
+      if (d) msg = typeof d === "string" ? d : JSON.stringify(d);
+    } catch {
+      /* keep the generic message */
+    }
+    throw new ApiError(r.status, msg);
+  }
+  noteEngineChange(method, path);
+  return JSON.parse(r.text) as T;
 }
 
 export async function getJSON<T>(path: string, init?: RequestInit): Promise<T> {
@@ -42,13 +61,14 @@ export async function getJSON<T>(path: string, init?: RequestInit): Promise<T> {
   return (await r.json()) as T;
 }
 
-let symbolsPromise: Promise<SearchResult[]> | null = null;
+let symbolsPromise: Promise<(SearchResult & { exported?: boolean })[]> | null = null;
 
 export async function search(q: string, signal?: AbortSignal): Promise<{ results: SearchResult[] }> {
   if (!STATIC_DEMO) return getJSON(`/search?q=${encodeURIComponent(q)}`, { signal });
-  symbolsPromise ??= fetch(staticUrl("symbols.json")).then((r) => r.json() as Promise<SearchResult[]>);
+  // The static site lists every synthetic company; without the browser engine only the exported ones have data.
+  symbolsPromise ??= fetch(staticUrl("symbols.json")).then((r) => r.json());
   const s = q.trim().toLowerCase();
-  const all = await symbolsPromise;
+  const all = (await symbolsPromise).filter((x) => BROWSER_ENGINE || x.exported !== false);
   return {
     results: all.filter((x) => x.ticker.toLowerCase().startsWith(s) || x.name.toLowerCase().includes(s)),
   };

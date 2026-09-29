@@ -373,6 +373,9 @@ def _source_name(calls: list[Call]) -> str:
 def _eps_revisions(ctx: ReportContext) -> dict:
     if ctx.pit:
         return {"status": "missing", "reason": "estimate snapshots are not point-in-time"}
+    # Fetching records today's consensus snapshot; without this, the history depended on whether another
+    # section had already fetched estimates in this process.
+    ctx.data.estimates(ctx.ticker)
     rows = [
         r
         for r in ctx.data.estimate_history(ctx.ticker)

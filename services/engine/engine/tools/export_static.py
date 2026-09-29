@@ -22,6 +22,7 @@ from fastapi.testclient import TestClient
 
 from engine import clock
 from engine.data.service import get_data
+from engine.synthetic.world import BENCHMARKS, FACTOR_FUNDS
 
 DEMO_TICKERS = ["ZZTEC", "ZZBNK", "ZZREI", "ZZGRO", "ZZUTL", "ZZSML"]
 RANGES = ["6m", "1y", "3y", "5y"]
@@ -111,11 +112,14 @@ def export(out: Path, tickers: list[str], backtest: bool) -> dict:
         for t in tickers:
             ex.get(f"/track-record/{t}", f"track-record/ticker/{t}.json")
 
-        syms = {s.ticker: s for s in get_data().symbols().value or []}
+        # Every synthetic company (not the index and factor funds): the in-browser engine can analyze all of them,
+        # so the site lists and pre-renders them; only `tickers` have saved responses.
+        funds = set(BENCHMARKS) | set(FACTOR_FUNDS)
+        companies = [s for s in get_data().symbols().value or [] if s.ticker not in funds]
         ex.write(
             "symbols.json",
-            [{"ticker": t, "name": syms[t].name if t in syms else t, "exchange": syms[t].exchange if t in syms else None}
-             for t in tickers],
+            [{"ticker": s.ticker, "name": s.name, "exchange": s.exchange, "exported": s.ticker in tickers}
+             for s in companies],
         )  # fmt: skip
         manifest = {
             "generated_at": clock.now().isoformat(),
@@ -124,6 +128,7 @@ def export(out: Path, tickers: list[str], backtest: bool) -> dict:
             "config_hash": health["config_hash"],
             "synthetic": health["synthetic"],
             "tickers": tickers,
+            "companies": [s.ticker for s in companies],
             "snapshot_tokens": [share["token"]],
         }
         ex.write("manifest.json", manifest)

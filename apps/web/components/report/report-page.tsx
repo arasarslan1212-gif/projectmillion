@@ -25,7 +25,7 @@ import { QuantSection } from "./quant";
 import { RiskSection } from "./risk";
 import { TrustSection } from "./trust";
 import { ValuationSection } from "./valuation";
-import { STATIC_DEMO } from "@/lib/static";
+import { CAN_COMPUTE } from "@/lib/static";
 
 const NAV = [
   { id: "snapshot", label: "Snapshot" },
@@ -153,7 +153,7 @@ export function ReportPage({ ticker, frozen }: { ticker: string; frozen?: Frozen
           company={company.data}
           headline={headline.data}
           headlineError={headline.error}
-          onRefresh={frozen || STATIC_DEMO ? undefined : refresh}
+          onRefresh={frozen || !CAN_COMPUTE ? undefined : refresh}
           refreshing={refreshing}
           frozen={!!frozen}
         />

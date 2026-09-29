@@ -7,7 +7,7 @@ export default function NotFound() {
       <h1 className="text-xl font-semibold">Page not found</h1>
       <p className="mt-2 text-ink-2">
         {STATIC_DEMO
-          ? "This static demo only includes the six synthetic example stocks (ZZTEC, ZZBNK, ZZREI, ZZGRO, ZZUTL, ZZSML). Run the app locally to analyze any ticker."
+          ? "This site covers the synthetic test companies only (ZZTEC, ZZBNK, ZZREI, ZZGRO, ZZUTL, ZZSML and their ZQ… peers). Run the app with data providers to analyze real tickers."
           : "There is nothing at this address."}
       </p>
       <Link href="/" className="mt-4 inline-block text-accent-ink underline">

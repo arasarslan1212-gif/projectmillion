@@ -8,7 +8,7 @@ import { useHealth } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { useTheme } from "@/lib/store";
 import { APP_NAME } from "@/lib/legal";
-import { STATIC_DEMO } from "@/lib/static";
+import { EngineBanner } from "@/components/engine-banner";
 
 const NAV = [
   { href: "/", label: "Search" },
@@ -58,26 +58,12 @@ export function SyntheticBanner() {
   );
 }
 
-function StaticBanner() {
-  if (!STATIC_DEMO) return null;
-  return (
-    <div
-      role="note"
-      className="no-print border-b border-line bg-surface-2 px-4 py-1.5 text-center text-xs text-ink-2"
-    >
-      <span className="font-semibold text-ink">Static demo:</span> a read-only export of the app on synthetic
-      data. Live features (what-if DCF, sharing, refresh, alert checks) need the engine; see the README to run
-      it.
-    </div>
-  );
-}
-
 export function SiteHeader() {
   const path = usePathname();
   const unread = useUnreadAlerts();
   return (
     <header className="no-print border-b border-line bg-surface">
-      <StaticBanner />
+      <EngineBanner />
       <SyntheticBanner />
       <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-2.5">
         <Link href="/" className="text-sm font-bold tracking-tight text-ink">

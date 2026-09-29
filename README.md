@@ -15,25 +15,29 @@ Open http://localhost:3000. With no keys configured, the app runs in **mock mode
 
 With Docker: `cp .env.example .env && docker compose up` starts PostgreSQL, the engine, the scheduler worker and the web app.
 
-## Static demo (GitHub Pages)
+## On GitHub Pages: the engine in your browser
 
-GitHub Pages can't run the engine, so `.github/workflows/pages.yml` publishes a read-only static demo:
+GitHub Pages only serves files, so the site published by `.github/workflows/pages.yml` runs the analysis engine in the visitor's browser. The engine is the same Python code, run by [Pyodide](https://pyodide.org) (CPython compiled to WebAssembly) in a web worker, on the synthetic market. The workflow:
 
-1. It runs the backtest on the synthetic market.
-2. It exports the engine's API responses for the six synthetic stocks to JSON with `python -m engine.tools.export_static`. These are the exact responses the live API gives, covering every report section, every compare and watchlist combination, the track record, the alerts inbox and one shared snapshot.
-3. It builds the web app as a static site (`STATIC_DEMO=1 NEXT_PUBLIC_STATIC_DEMO=1 next build`) that reads those files.
+1. Smoke-tests the engine in Pyodide (`apps/web/scripts/engine-smoke.mjs`). This fails fast if something doesn't run in WebAssembly, and reports where its answers differ from the native engine's.
+2. Runs the backtest and exports the engine's API responses for the six synthetic stocks with `python -m engine.tools.export_static`, so those pages load instantly.
+3. Bundles the engine with `python -m engine.tools.build_browser_bundle`. The bundle holds the code, the config, the database after the backtest (track record, calibration, analyst history) without its provider caches, and two small wheels. It comes to about 1.6 MB; numpy, pandas and scipy come from Pyodide's CDN, about 30 MB on the first visit, then cached.
+4. Builds the static site (`STATIC_DEMO=1 NEXT_PUBLIC_STATIC_DEMO=1 NEXT_PUBLIC_BROWSER_ENGINE=1 next build`) and tests it in headless Chromium (`apps/web/scripts/engine-e2e.mjs`) before deploying.
+
+On the site, saved answers show at once and everything else is computed live in the browser: the what-if DCF, peer edits, refresh, compare and watchlist sets, alerts, and full reports for all 78 synthetic companies (the six headline stocks and their ZQ… peers). Two things still need a server: share links, since a snapshot would exist only in one browser, and real market data, since browsers can't call the providers and API keys would be public. Changes last until the page is reloaded.
 
 To enable it, set **Settings → Pages → Build and deployment → Source** to **GitHub Actions**. After the next push, or a manual run of the "Pages demo" workflow, the site is at `https://<owner>.github.io/<repo>/`.
 
-In the demo, the features that need a live engine are disabled and say so: the what-if DCF, editing peers, share links, refresh, and checking or changing alerts. Other tickers are not available.
-
-To try it locally:
+To build it locally:
 
 ```bash
-cd services/engine && DATA_MODE=mock FIXTURE_SET=synthetic DATABASE_URL=sqlite:///demo.db \
-  .venv/bin/python -m engine.tools.export_static --out ../../apps/web/public/data   # --no-backtest for a quick run
-cd ../../apps/web && STATIC_DEMO=1 NEXT_PUBLIC_STATIC_DEMO=1 npx next build   # site in apps/web/out
+cd services/engine && export DATA_MODE=mock FIXTURE_SET=synthetic DATABASE_URL=sqlite:///demo.db
+.venv/bin/python -m engine.tools.export_static --out ../../apps/web/public/data   # --no-backtest for a quick run
+.venv/bin/python -m engine.tools.build_browser_bundle --db demo.db --out ../../apps/web/public/engine
+cd ../../apps/web && STATIC_DEMO=1 NEXT_PUBLIC_STATIC_DEMO=1 NEXT_PUBLIC_BROWSER_ENGINE=1 npx next build
 ```
+
+Serve `apps/web/out` with any static file server. Leave out `NEXT_PUBLIC_BROWSER_ENGINE` for a read-only site that shows only the saved answers.
 
 ## What's in the app
 

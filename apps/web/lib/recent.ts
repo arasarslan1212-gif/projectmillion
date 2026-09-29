@@ -2,7 +2,7 @@
 
 import { getJSON } from "./api";
 import { useStored, writeStore } from "./store";
-import { STATIC_DEMO } from "./static";
+import { CAN_COMPUTE } from "./static";
 
 const RECENT = "recent-tickers";
 const WATCH = "watchlist";
@@ -31,7 +31,7 @@ export function toggleWatch(ticker: string): string[] {
 
 /** The server keeps one copy of the watchlist so it can evaluate alerts; the browser's list is the source. */
 export function syncWatchlist(list: string[] = readList(WATCH)): void {
-  if (STATIC_DEMO) return; // no server in the static demo
+  if (!CAN_COMPUTE) return; // no engine to keep a copy
   getJSON("/watchlist", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },

@@ -363,3 +363,18 @@ What the export covers:
 - the alerts inbox for a watchlist of all six.
 
 Anything that writes or computes on request fails soft with a note, not a broken page: POST and PUT calls, the what-if DCF, peer editing, sharing, refresh, and alert actions. Pages is deployed from Actions (`upload-pages-artifact` + `deploy-pages`) rather than from a branch, so Jekyll never touches the build and the repository keeps no build output.
+
+### D-063: The engine runs in the browser on the static site
+The static export (D-062) could only show saved answers, so the site ran as a read-only demo. Porting the engine to JavaScript would have meant a second engine that drifts from the first. Instead, the Python engine itself runs in the visitor's browser under Pyodide (CPython compiled to WebAssembly), in a web worker.
+
+- **Unchanged code, adapted runtime.** `engine/browser.py` adapts the runtime without touching engine logic:
+  - WebAssembly Python can't start threads, so thread pools and FastAPI's thread pool (`anyio.to_thread.run_sync`) run inline;
+  - requests go through the FastAPI app in-process via httpx's ASGI transport, so validation, errors and status codes behave as over HTTP.
+
+  Two small engine changes made this possible: the `anthropic` SDK is imported only when a key is set, and SQLite's WAL mode is a setting.
+- **Pyodide 314** (Python 3.14) was chosen because its numpy, pandas and scipy are the closest to `uv.lock` (pandas 3.0.2 vs 3.0.6, numpy 2.4.6 vs 2.5.3, scipy 1.18.0 vs 1.18.1). The CI smoke test reports any answer that differs from the native engine's.
+- **The bundle is small.** The database after the backtest is 132 MB, but 127 MB of it are caches of provider data (`provider_cache`, `prices`, `fundamentals`), which the engine refills on demand. Without them, the seed is 5 MB, or 1.2 MB gzipped. Checked: an engine started from the slimmed seed reproduced the saved report sections and the backtest track record exactly.
+- **Saved answers first.** GET requests with a saved answer are served from the export, so pages load instantly; only what the export can't answer waits for the engine. Custom peers and reports refreshed in the session go to the engine. Once the engine is ready, alerts do too, because they change as it runs.
+- **Still server-only:** share links, because a snapshot made in one browser can't be opened in another, and real market data, because providers don't allow browser calls and keys would be exposed.
+
+Building the parity check surfaced an engine bug: the analysts section read the stored EPS consensus history before today's snapshot was recorded. On a fresh database it therefore said "no EPS estimates" unless another section had already fetched estimates. It now fetches first, and a regression test covers it.

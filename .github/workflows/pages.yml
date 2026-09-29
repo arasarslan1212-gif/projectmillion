@@ -1,6 +1,7 @@
-# Publishes the static demo to GitHub Pages: the engine's API responses for the synthetic market are exported to
-# JSON (engine.tools.export_static), then the web app is built as a static site that reads them.
-# Requires Settings → Pages → Build and deployment → Source: "GitHub Actions".
+# Publishes the app to GitHub Pages as a static site that runs the analysis engine in the visitor's browser:
+# the engine's API responses for the synthetic market are exported to JSON (engine.tools.export_static) for instant
+# answers, and the engine itself is bundled for Pyodide (engine.tools.build_browser_bundle) to compute everything
+# else. Requires Settings → Pages → Build and deployment → Source: "GitHub Actions".
 name: Pages demo
 
 on:
@@ -17,10 +18,15 @@ concurrency:
   group: pages
   cancel-in-progress: false
 
+env:
+  DATA_MODE: mock
+  FIXTURE_SET: synthetic
+  PLAYWRIGHT_VERSION: 1.56.1
+
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 
@@ -37,30 +43,65 @@ jobs:
         working-directory: services/engine
         run: uv sync --frozen --no-dev
 
-      - name: Export the engine's responses for the synthetic market
-        working-directory: services/engine
-        env:
-          DATA_MODE: mock
-          FIXTURE_SET: synthetic
-          DATABASE_URL: sqlite:///${{ runner.temp }}/demo.db
-        run: uv run --frozen --no-dev python -m engine.tools.export_static --out ../../apps/web/public/data
-
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: apps/web/package-lock.json
 
+      - name: Install web app, Pyodide and Playwright
+        working-directory: apps/web
+        run: |
+          npm ci --no-audit --no-fund
+          PYODIDE=$(cd ../../services/engine && uv run --frozen --no-dev python -c \
+            "from engine.tools.build_browser_bundle import PYODIDE_VERSION; print(PYODIDE_VERSION)")
+          npm install --no-save --no-audit --no-fund "pyodide@$PYODIDE" "playwright@$PLAYWRIGHT_VERSION"
+
+      # Fails fast (before the long backtest) if the engine does not run in WebAssembly, and reports where its
+      # answers differ from the native engine's.
+      - name: Smoke-test the engine in Pyodide
+        env:
+          DATABASE_URL: sqlite:///${{ runner.temp }}/smoke.db
+        run: |
+          cd services/engine
+          uv run --frozen --no-dev python -m engine.tools.export_static --tickers ZZTEC --no-backtest \
+            --out "$RUNNER_TEMP/smoke/data"
+          uv run --frozen --no-dev python -m engine.tools.build_browser_bundle --db "$RUNNER_TEMP/smoke.db" \
+            --out "$RUNNER_TEMP/smoke/engine"
+          cd ../../apps/web
+          node scripts/engine-smoke.mjs --bundle "$RUNNER_TEMP/smoke/engine" --data "$RUNNER_TEMP/smoke/data"
+
+      - name: Export the engine's responses and bundle the engine
+        working-directory: services/engine
+        env:
+          DATABASE_URL: sqlite:///${{ runner.temp }}/demo.db
+        run: |
+          uv run --frozen --no-dev python -m engine.tools.export_static --out ../../apps/web/public/data
+          uv run --frozen --no-dev python -m engine.tools.build_browser_bundle --db "$RUNNER_TEMP/demo.db" \
+            --out ../../apps/web/public/engine
+
       - name: Build the static site
         working-directory: apps/web
         env:
           STATIC_DEMO: "1"
           NEXT_PUBLIC_STATIC_DEMO: "1"
+          NEXT_PUBLIC_BROWSER_ENGINE: "1"
           NEXT_PUBLIC_BASE_PATH: ${{ steps.pages.outputs.base_path }}
           NEXT_TELEMETRY_DISABLED: "1"
+        run: npx next build
+
+      - name: Test the site in a browser
+        working-directory: apps/web
         run: |
-          npm ci --no-audit --no-fund
-          npx next build
+          npx playwright install --with-deps chromium
+          node scripts/engine-e2e.mjs --base "${{ steps.pages.outputs.base_path }}"
+
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-screenshots
+          path: apps/web/e2e-*.png
+          if-no-files-found: ignore
 
       - uses: actions/upload-pages-artifact@v3
         with:

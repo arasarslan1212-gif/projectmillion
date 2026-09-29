@@ -15,7 +15,7 @@ import { DISCLAIMER_SHORT } from "@/lib/legal";
 import type { ThemeColors } from "@/lib/theme";
 import { withAlpha } from "@/lib/theme";
 import type { AnySection, Metric } from "@/lib/types";
-import { STATIC_DEMO, STATIC_NOTE } from "@/lib/static";
+import { CAN_COMPUTE, STATIC_NOTE } from "@/lib/static";
 
 function Tile({ m, sub, hero }: { m: Metric; sub?: React.ReactNode; hero?: boolean }) {
   return (
@@ -950,7 +950,7 @@ export function ValuationSection({
         </TabsContent>
         {v.dcf && (
           <TabsContent value="whatif">
-            {STATIC_DEMO ? (
+            {!CAN_COMPUTE ? (
               <p className="text-sm text-ink-2">
                 The what-if calculator reruns the engine&apos;s DCF every time a slider moves, so it needs the
                 live app. {STATIC_NOTE}

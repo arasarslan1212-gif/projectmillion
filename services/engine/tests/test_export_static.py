@@ -70,6 +70,8 @@ def test_export_writes_every_file_the_web_maps(tmp_path, clean_alerts):
     cmp = json.loads((tmp_path / "compare/ZZBNK_ZZTEC_1y.json").read_text())
     assert cmp["tickers"] == ["ZZTEC", "ZZBNK"]
     symbols = json.loads((tmp_path / "symbols.json").read_text())
-    assert [s["ticker"] for s in symbols] == ["ZZTEC", "ZZBNK"] and all(s["name"] for s in symbols)
+    assert [s["ticker"] for s in symbols if s["exported"]] == ["ZZTEC", "ZZBNK"]
+    assert len(symbols) == len(manifest["companies"]) > 50 and all(s["name"] for s in symbols)
+    assert "ZQT01" in manifest["companies"] and "ZZMKT" not in manifest["companies"]  # peers yes, funds no
     snap = json.loads((tmp_path / f"snapshot/{token}.json").read_text())
     assert snap["ticker"] == "ZZTEC"

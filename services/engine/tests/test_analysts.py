@@ -445,3 +445,13 @@ def test_nightly_job_stores_scores():
         rows = s.execute(select(m.AnalystScore)).scalars().all()
         assert all(0 <= r.trust_score <= 100 for r in rows if r.trust_score is not None)
         assert any(r.excess_12m is not None for r in rows)
+
+
+def test_eps_revisions_do_not_depend_on_section_order(reset_env, monkeypatch, tmp_path):
+    """Regression: the analysts section read the stored consensus history before today's snapshot was recorded,
+    so on a fresh database it reported "no EPS estimates" unless another section had fetched estimates first."""
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path / 'fresh.db'}")
+    reset_env()
+    e = get_section("ZZBNK", "analysts")["eps_revisions"]
+    assert e["status"] == "partial"
+    assert e["series"] and all(len(s["points"]) == 1 for s in e["series"])

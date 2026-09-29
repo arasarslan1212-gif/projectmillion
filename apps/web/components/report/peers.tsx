@@ -9,7 +9,7 @@ import { formatValue } from "@/lib/format";
 import type { ThemeColors } from "@/lib/theme";
 import { withAlpha } from "@/lib/theme";
 import type { AnySection, Unit } from "@/lib/types";
-import { STATIC_DEMO } from "@/lib/static";
+import { CAN_COMPUTE } from "@/lib/static";
 
 function PeerScatter({ p }: { p: AnySection }) {
   const pts: AnySection[] = p.scatter.points;
@@ -115,7 +115,7 @@ export function PeersSection({ p, onPeers }: { p: AnySection; onPeers: (peers: s
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
         <span>{p.selection_note}</span>
-        {!STATIC_DEMO && (
+        {CAN_COMPUTE && (
           <Button onClick={() => setEditing(!editing)} aria-expanded={editing}>
             Edit peers
           </Button>

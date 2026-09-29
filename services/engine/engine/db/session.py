@@ -19,7 +19,7 @@ def get_engine(url: str | None = None) -> Engine:
     if url.startswith("sqlite"):
         kwargs["connect_args"] = {"check_same_thread": False, "timeout": 30}
     eng = create_engine(url, **kwargs)
-    if url.startswith("sqlite"):
+    if url.startswith("sqlite") and get_settings().sqlite_wal:
 
         @event.listens_for(eng, "connect")
         def _pragma(conn, _):  # WAL lets the API read while jobs write

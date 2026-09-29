@@ -19,7 +19,6 @@ import logging
 import threading
 from dataclasses import dataclass, field
 
-import anthropic
 from pydantic import BaseModel, ValidationError
 
 from engine.config import get_config
@@ -49,6 +48,8 @@ def get_client():
     s = get_settings()
     if not s.llm_enabled:
         return None
+    import anthropic  # imported only when a key is configured (the in-browser engine does not ship the SDK)
+
     with _lock:
         if _client is None:
             _client = anthropic.Anthropic(api_key=s.anthropic_api_key, max_retries=2, timeout=90.0)
@@ -172,6 +173,8 @@ def structured_call[T: BaseModel](
     if client is None:
         info.error = "LLM not configured (no ANTHROPIC_API_KEY)"
         return None, info
+    import anthropic
+
     reserve = len(system) // 4 + len(user) // 4 + max_tokens
     if budget is not None and not budget.reserve(reserve):
         info.error = "report token budget exhausted"
