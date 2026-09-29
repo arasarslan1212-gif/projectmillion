@@ -35,6 +35,30 @@ def summary(v) -> str:
     return type(v).__name__
 
 
+def raw_sec_check(ua: str) -> None:
+    """Direct requests to SEC with a few User-Agents, to tell a refused header from a refused network."""
+    import httpx
+
+    urls = [
+        "https://www.sec.gov/files/company_tickers_exchange.json",
+        "https://data.sec.gov/submissions/CIK0000320193.json",
+    ]
+    for label, agent in [
+        ("configured", ua),
+        ("name + plain email", "Candor Research candor.research.app@gmail.com"),
+        ("browser-like", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko)"),
+    ]:
+        for url in urls:
+            try:
+                r = httpx.get(
+                    url, headers={"User-Agent": agent, "Accept-Encoding": "gzip, deflate"}, timeout=20
+                )
+                body = r.text[:160].replace("\n", " ")
+                print(f"  raw SEC [{label}] {url.split('/')[2]}: HTTP {r.status_code} {body!r}")
+            except Exception as e:  # network-level failures are the finding here
+                print(f"  raw SEC [{label}] {url.split('/')[2]}: {type(e).__name__}: {e}")
+
+
 def main() -> int:
     tickers = [t.upper() for t in sys.argv[1:]] or ["AAPL"]
     # the data layer logs each provider failure with its raw message; show those under the summary lines
@@ -72,6 +96,7 @@ def main() -> int:
         )
         return value
 
+    raw_sec_check(s.sec_user_agent)
     syms = check("symbols (SEC ticker list)", d.symbols)
     print(f"  ... {len(syms or [])} US-listed symbols")
     for t in tickers:
