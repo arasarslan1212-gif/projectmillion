@@ -1,3 +1,5 @@
+import { GeistMono } from "geist/font/mono";
+import { GeistSans } from "geist/font/sans";
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { SiteFooter } from "@/components/site-footer";
@@ -19,11 +21,11 @@ const themeScript = `(function(){try{var t=localStorage.getItem('theme');if(t!==
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className="min-h-screen">
+      <body className="flex min-h-screen flex-col">
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded focus:bg-surface focus:px-3 focus:py-2"
@@ -32,7 +34,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         </a>
         <Providers>
           <SiteHeader />
-          <main id="main">{children}</main>
+          <main id="main" className="flex-1">
+            {children}
+          </main>
           <SiteFooter />
         </Providers>
       </body>

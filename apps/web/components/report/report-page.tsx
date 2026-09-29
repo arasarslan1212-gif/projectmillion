@@ -144,7 +144,7 @@ export function ReportPage({ ticker, frozen }: { ticker: string; frozen?: Frozen
 
   return (
     <div className="mx-auto max-w-7xl px-4">
-      <div className="z-30 -mx-4 border-b border-line bg-page/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-page/80 sm:sticky sm:top-0 print:static print:bg-transparent print:backdrop-blur-none">
+      <div className="z-30 -mx-4 border-b border-line bg-page/85 px-4 backdrop-blur-xl sm:sticky sm:top-14 print:static print:bg-transparent print:backdrop-blur-none">
         <p className="hidden pt-2 text-[10px] text-muted print:block">
           {frozen ? "Snapshot of the report" : "Report"} generated{" "}
           {formatDateTime(company.data?.generated_at)} · {DISCLAIMER_SHORT}
@@ -157,12 +157,12 @@ export function ReportPage({ ticker, frozen }: { ticker: string; frozen?: Frozen
           refreshing={refreshing}
           frozen={!!frozen}
         />
-        <nav aria-label="Report sections" className="no-print -mx-1 flex gap-1 overflow-x-auto pb-2">
+        <nav aria-label="Report sections" className="no-print -mx-1 flex gap-0.5 overflow-x-auto pb-2.5">
           {NAV.map((n) => (
             <a
               key={n.id}
               href={`#${n.id}`}
-              className="whitespace-nowrap rounded-md px-2 py-1 text-xs font-medium text-ink-2 hover:bg-surface-2"
+              className="whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium text-muted transition-colors hover:bg-surface-2 hover:text-ink"
             >
               {n.label}
             </a>

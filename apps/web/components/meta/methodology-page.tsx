@@ -223,7 +223,10 @@ export function MethodologyPage({ glossaryOnly = false }: { glossaryOnly?: boole
           </ol>
         </nav>
         <div className="min-w-0 space-y-6">
-          <section id="principles" className="rounded-xl border border-line bg-surface p-4 sm:p-5">
+          <section
+            id="principles"
+            className="rounded-2xl border border-line bg-surface p-5 shadow-card sm:p-6"
+          >
             <h2 className="text-base font-semibold">Principles</h2>
             <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-ink-2">
               {data.principles.map((p: string) => (
@@ -236,7 +239,7 @@ export function MethodologyPage({ glossaryOnly = false }: { glossaryOnly?: boole
             <section
               key={s.id}
               id={`m-${s.id}`}
-              className="scroll-mt-20 rounded-xl border border-line bg-surface p-4 sm:p-5"
+              className="scroll-mt-20 rounded-2xl border border-line bg-surface p-5 shadow-card sm:p-6"
             >
               <h2 className="text-base font-semibold">{s.title}</h2>
               <p className="mt-1 text-sm text-ink-2">{s.intro}</p>
@@ -246,7 +249,10 @@ export function MethodologyPage({ glossaryOnly = false }: { glossaryOnly?: boole
               </div>
             </section>
           ))}
-          <section id="glossary" className="scroll-mt-20 rounded-xl border border-line bg-surface p-4 sm:p-5">
+          <section
+            id="glossary"
+            className="scroll-mt-20 rounded-2xl border border-line bg-surface p-5 shadow-card sm:p-6"
+          >
             <h2 className="text-base font-semibold">Glossary</h2>
             <div className="mt-2">
               <Glossary items={data.glossary} />

@@ -4,11 +4,10 @@ import { Moon, Sun } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useUnreadAlerts } from "@/lib/alerts";
-import { useHealth } from "@/lib/api";
 import { cn } from "@/lib/cn";
 import { useTheme } from "@/lib/store";
 import { APP_NAME } from "@/lib/legal";
-import { EngineBanner } from "@/components/engine-banner";
+import { StatusBar } from "@/components/engine-banner";
 
 const NAV = [
   { href: "/", label: "Search" },
@@ -36,7 +35,7 @@ function ThemeToggle() {
     <button
       type="button"
       onClick={flip}
-      className="inline-flex size-8 items-center justify-center rounded-md text-ink-2 hover:bg-surface-2"
+      className="inline-flex size-9 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:bg-surface-2 hover:text-ink"
       aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
     >
       {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
@@ -44,17 +43,26 @@ function ThemeToggle() {
   );
 }
 
-export function SyntheticBanner() {
-  const h = useHealth();
-  if (!h?.synthetic) return null;
+/** The app's mark: an ascending line in a rounded square (also app/icon.svg). */
+export function LogoMark({ className }: { className?: string }) {
   return (
-    <div
-      role="note"
-      className="no-print border-b border-synthetic/30 bg-synthetic/10 px-4 py-1.5 text-center text-xs font-medium text-synthetic-ink"
-    >
-      SYNTHETIC TEST DATA: every company, price, analyst and headline shown here is generated for testing and
-      is not real. Configure data providers to see real companies.
-    </div>
+    <svg viewBox="0 0 32 32" className={className} aria-hidden>
+      <defs>
+        <linearGradient id="logo-g" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#6366f1" />
+          <stop offset="1" stopColor="#8b5cf6" />
+        </linearGradient>
+      </defs>
+      <rect width="32" height="32" rx="9" fill="url(#logo-g)" />
+      <path
+        d="M8 21.5l5.5-5.5 4 4L24 13.5"
+        fill="none"
+        stroke="#fff"
+        strokeWidth="2.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 
@@ -62,36 +70,48 @@ export function SiteHeader() {
   const path = usePathname();
   const unread = useUnreadAlerts();
   return (
-    <header className="no-print border-b border-line bg-surface">
-      <EngineBanner />
-      <SyntheticBanner />
-      <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-2.5">
-        <Link href="/" className="text-sm font-bold tracking-tight text-ink">
-          {APP_NAME}
-          <span className="ml-1.5 hidden font-normal text-muted sm:inline">explainable stock research</span>
-        </Link>
-        <nav aria-label="Main" className="-mx-1 flex flex-1 items-center gap-0.5 overflow-x-auto">
-          {NAV.map((n) => (
-            <Link
-              key={n.href}
-              href={n.href}
-              className={cn(
-                "whitespace-nowrap rounded-md px-2 py-1 text-xs font-medium text-ink-2 hover:bg-surface-2",
-                (n.href === "/" ? path === "/" : path.startsWith(n.href)) && "bg-surface-2 text-ink",
-              )}
-            >
-              {n.label}
-              {n.href === "/alerts" && unread > 0 && (
-                <span className="ml-1 rounded-full bg-accent-ink px-1.5 py-px text-[10px] font-semibold text-surface">
-                  {unread}
-                  <span className="sr-only"> unread</span>
-                </span>
-              )}
-            </Link>
-          ))}
-        </nav>
-        <ThemeToggle />
-      </div>
-    </header>
+    <>
+      <StatusBar />
+      <header className="no-print sticky top-0 z-40 border-b border-line bg-page/75 backdrop-blur-xl">
+        <div className="mx-auto flex h-14 max-w-7xl items-center gap-5 px-4">
+          <Link
+            href="/"
+            className="flex shrink-0 items-center gap-2 rounded-lg"
+            aria-label={`${APP_NAME} home`}
+          >
+            <LogoMark className="size-7" />
+            <span className="text-[15px] font-semibold tracking-tight text-ink">{APP_NAME}</span>
+          </Link>
+          <nav
+            aria-label="Main"
+            className="-mx-1 flex flex-1 items-center gap-0.5 overflow-x-auto [mask-image:linear-gradient(to_right,black_85%,transparent)] md:[mask-image:none]"
+          >
+            {NAV.map((n) => {
+              const active = n.href === "/" ? path === "/" : path.startsWith(n.href);
+              return (
+                <Link
+                  key={n.href}
+                  href={n.href}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "inline-flex items-center whitespace-nowrap rounded-full px-3 py-1.5 text-[13px] font-medium text-muted transition-colors hover:text-ink",
+                    active && "bg-surface text-ink shadow-card ring-1 ring-line",
+                  )}
+                >
+                  {n.label}
+                  {n.href === "/alerts" && unread > 0 && (
+                    <span className="ml-1.5 rounded-full bg-accent-ink px-1.5 py-px text-[10px] font-semibold text-surface">
+                      {unread}
+                      <span className="sr-only"> unread</span>
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
+          <ThemeToggle />
+        </div>
+      </header>
+    </>
   );
 }

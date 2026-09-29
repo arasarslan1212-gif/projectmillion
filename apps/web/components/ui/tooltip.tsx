@@ -29,7 +29,7 @@ export function Tip({
           side={side}
           sideOffset={6}
           collisionPadding={12}
-          className="z-50 max-w-xs rounded-lg border border-line bg-surface px-3 py-2 text-xs leading-relaxed text-ink shadow-lg"
+          className="z-50 max-w-xs rounded-xl border border-line bg-surface px-3 py-2 text-xs leading-relaxed text-ink shadow-pop"
         >
           {content}
           <T.Arrow className="fill-surface" />

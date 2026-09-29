@@ -70,10 +70,10 @@ export function SectionShell({
     <section
       id={id}
       aria-labelledby={`${id}-title`}
-      className="report-section rounded-xl border border-line bg-surface"
+      className="report-section rounded-2xl border border-line bg-surface shadow-card"
     >
       <Collapsible.Root open={open} onOpenChange={setOpen}>
-        <div className="flex flex-wrap items-start gap-2 px-4 pt-4 sm:px-5">
+        <div className="flex flex-wrap items-start gap-2 px-4 pt-4 sm:px-6 sm:pt-5">
           <Collapsible.Trigger asChild>
             <button
               type="button"
@@ -88,7 +88,7 @@ export function SectionShell({
                 aria-hidden
               />
               <span className="min-w-0">
-                <h2 id={`${id}-title`} className="text-base font-semibold text-ink">
+                <h2 id={`${id}-title`} className="text-base font-semibold tracking-tight text-ink">
                   {title}
                 </h2>
                 {subtitle && <span className="mt-0.5 block text-xs text-muted">{subtitle}</span>}
@@ -99,7 +99,7 @@ export function SectionShell({
         </div>
         {/* always mounted, so a collapsed section still prints in full */}
         <Collapsible.Content forceMount className="data-[state=closed]:hidden print:!block">
-          <div className={cn("px-4 pt-3 pb-4 sm:px-5", loading && data && "opacity-60 transition-opacity")}>
+          <div className={cn("px-4 pt-3 pb-5 sm:px-6", loading && data && "opacity-60 transition-opacity")}>
             {!data && loading && (
               <div className="space-y-2" aria-busy="true" aria-label={`Loading ${title}`}>
                 <Skeleton className="h-4 w-1/3" />
@@ -118,7 +118,7 @@ export function SectionShell({
             )}
           </div>
           {data?.sources?.length ? (
-            <div className="border-t border-line px-4 py-2 sm:px-5">
+            <div className="rounded-b-2xl border-t border-line bg-surface-2/40 px-4 py-2 sm:px-6">
               <SourceBadges sources={data.sources} />
             </div>
           ) : null}

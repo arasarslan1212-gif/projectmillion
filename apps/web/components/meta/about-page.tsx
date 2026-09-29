@@ -61,7 +61,10 @@ export function AboutPage() {
         </p>
       </div>
 
-      <section aria-labelledby="how" className="rounded-xl border border-line bg-surface p-4 sm:p-5">
+      <section
+        aria-labelledby="how"
+        className="rounded-2xl border border-line bg-surface p-5 shadow-card sm:p-6"
+      >
         <h2 id="how" className="text-base font-semibold">
           How it works
         </h2>
@@ -91,7 +94,10 @@ export function AboutPage() {
         </ul>
       </section>
 
-      <section aria-labelledby="deploy" className="rounded-xl border border-line bg-surface p-4 sm:p-5">
+      <section
+        aria-labelledby="deploy"
+        className="rounded-2xl border border-line bg-surface p-5 shadow-card sm:p-6"
+      >
         <h2 id="deploy" className="text-base font-semibold">
           This deployment
         </h2>
@@ -119,7 +125,10 @@ export function AboutPage() {
         )}
       </section>
 
-      <section aria-labelledby="sources" className="rounded-xl border border-line bg-surface p-4 sm:p-5">
+      <section
+        aria-labelledby="sources"
+        className="rounded-2xl border border-line bg-surface p-5 shadow-card sm:p-6"
+      >
         <h2 id="sources" className="text-base font-semibold">
           Data sources and attribution
         </h2>
@@ -140,7 +149,10 @@ export function AboutPage() {
         </p>
       </section>
 
-      <section aria-labelledby="privacy" className="rounded-xl border border-line bg-surface p-4 sm:p-5">
+      <section
+        aria-labelledby="privacy"
+        className="rounded-2xl border border-line bg-surface p-5 shadow-card sm:p-6"
+      >
         <h2 id="privacy" className="text-base font-semibold">
           Your data
         </h2>

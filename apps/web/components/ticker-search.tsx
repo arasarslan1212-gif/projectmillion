@@ -57,11 +57,11 @@ export function TickerSearch({
       </label>
       <div
         className={cn(
-          "flex items-center gap-2 rounded-xl border border-line bg-surface px-3 focus-within:border-accent",
-          compact ? "h-9" : "h-12",
+          "flex items-center gap-2.5 border border-line bg-surface transition-shadow focus-within:border-accent focus-within:ring-4 focus-within:ring-accent-wash",
+          compact ? "h-9 rounded-lg px-3 shadow-card" : "h-14 rounded-2xl px-4 shadow-pop",
         )}
       >
-        <SearchIcon className="size-4 text-muted" aria-hidden />
+        <SearchIcon className={cn("shrink-0 text-muted", compact ? "size-4" : "size-5")} aria-hidden />
         <input
           id={`${listId}-input`}
           ref={inputRef}
@@ -74,7 +74,7 @@ export function TickerSearch({
           value={q}
           placeholder="Ticker or company, e.g. AAPL or Apple"
           className={cn(
-            "w-full bg-transparent outline-none placeholder:text-muted",
+            "w-full bg-transparent outline-none placeholder:text-muted focus-visible:outline-none",
             compact ? "text-sm" : "text-base",
           )}
           onChange={(e) => {
@@ -104,7 +104,7 @@ export function TickerSearch({
         <ul
           id={listId}
           role="listbox"
-          className="absolute z-40 mt-1 max-h-80 w-full overflow-auto rounded-xl border border-line bg-surface py-1 shadow-lg"
+          className="absolute z-50 mt-2 max-h-80 w-full overflow-auto rounded-xl border border-line bg-surface p-1 text-left shadow-pop"
         >
           {error && <li className="px-3 py-2 text-sm text-critical-ink">{error}</li>}
           {shown.map((r, i) => (
@@ -119,11 +119,11 @@ export function TickerSearch({
               }}
               onMouseEnter={() => setActive(i)}
               className={cn(
-                "flex cursor-pointer items-baseline gap-3 px-3 py-2 text-sm",
+                "flex cursor-pointer items-baseline gap-3 rounded-lg px-3 py-2 text-sm",
                 i === active && "bg-surface-2",
               )}
             >
-              <span className="w-16 shrink-0 font-semibold">{r.ticker}</span>
+              <span className="w-16 shrink-0 font-mono text-[13px] font-semibold">{r.ticker}</span>
               <span className="truncate text-ink-2">{r.name}</span>
               {r.exchange && <span className="ml-auto shrink-0 text-xs text-muted">{r.exchange}</span>}
             </li>

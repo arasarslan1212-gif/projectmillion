@@ -28,10 +28,10 @@ function HeadlineBadge({
     <Tip content={tip}>
       <button
         type="button"
-        className="min-w-[7.5rem] rounded-lg border border-line bg-surface px-3 py-1.5 text-left hover:bg-surface-2"
+        className="min-w-0 rounded-xl border border-line bg-surface px-3.5 py-2 text-left shadow-card transition-colors hover:border-line-strong sm:min-w-[8.5rem]"
       >
-        <div className="text-[11px] font-medium uppercase tracking-wide text-muted">{label}</div>
-        <div className="tabular mt-0.5 text-sm font-semibold">{children}</div>
+        <div className="text-[11px] font-medium uppercase tracking-wider text-muted">{label}</div>
+        <div className="tabular mt-1 text-[15px] font-semibold tracking-tight">{children}</div>
       </button>
     </Tip>
   );
@@ -77,16 +77,18 @@ export function ReportHeader({
   const pending = headlineError || headline ? <span className="text-muted">Not available</span> : null;
 
   return (
-    <div className="py-3">
-      <div className="flex flex-wrap items-end gap-x-4 gap-y-2">
+    <div className="pt-5 pb-3">
+      <div className="flex flex-wrap items-end gap-x-6 gap-y-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="truncate text-xl font-semibold tracking-tight sm:text-2xl">{id.name}</h1>
+            <h1 className="truncate text-2xl font-semibold tracking-tight sm:text-[28px]">{id.name}</h1>
             {company.synthetic && <Badge tone="synthetic">Synthetic test company</Badge>}
             {frozen && <Badge tone="warning">Frozen snapshot</Badge>}
           </div>
-          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-muted">
-            <span className="font-semibold text-ink-2">{id.ticker}</span>
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 text-xs text-muted">
+            <span className="rounded-md bg-surface-2 px-1.5 py-0.5 font-mono font-semibold text-ink-2">
+              {id.ticker}
+            </span>
             <span>{id.exchange}</span>
             <span aria-hidden>·</span>
             <Tip
@@ -108,16 +110,16 @@ export function ReportHeader({
         </div>
         <div className="flex items-baseline gap-2">
           <MetricTip m={price}>
-            <button type="button" className="text-2xl font-semibold">
+            <button type="button" className="tabular text-3xl font-semibold tracking-tight">
               {formatMetric(price)}
             </button>
           </MetricTip>
           <span
             className={cn(
-              "tabular text-sm font-medium",
-              dir === "up" && "text-good-ink",
-              dir === "down" && "text-critical-ink",
-              dir === "flat" && "text-muted",
+              "tabular rounded-full px-2 py-0.5 text-sm font-medium",
+              dir === "up" && "bg-good/12 text-good-ink",
+              dir === "down" && "bg-critical/12 text-critical-ink",
+              dir === "flat" && "bg-surface-2 text-muted",
             )}
           >
             {formatMetric(chg, { signed: true })} ({formatMetric(chgPct, { signed: true, digits: 2 })})
@@ -144,7 +146,7 @@ export function ReportHeader({
         </div>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-stretch gap-2">
+      <div className="mt-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-stretch sm:gap-2.5">
         <HeadlineBadge
           label="Trust Rating"
           tip={trust ? <p>{trust.explain}</p> : <p>Computing the app&apos;s Trust Rating…</p>}

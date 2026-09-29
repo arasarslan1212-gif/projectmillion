@@ -7,14 +7,14 @@ import type { ComponentProps } from "react";
 export const Tabs = T.Root;
 
 export function TabsList({ className, ...p }: ComponentProps<typeof T.List>) {
-  return <T.List className={cn("flex flex-wrap gap-1 border-b border-line", className)} {...p} />;
+  return <T.List className={cn("flex flex-wrap gap-4 border-b border-line", className)} {...p} />;
 }
 
 export function TabsTrigger({ className, ...p }: ComponentProps<typeof T.Trigger>) {
   return (
     <T.Trigger
       className={cn(
-        "-mb-px border-b-2 border-transparent px-2.5 py-1.5 text-xs font-medium text-ink-2 hover:text-ink data-[state=active]:border-accent data-[state=active]:text-ink",
+        "-mb-px border-b-2 border-transparent py-2 text-xs font-medium text-muted transition-colors hover:text-ink data-[state=active]:border-accent data-[state=active]:text-ink",
         className,
       )}
       {...p}

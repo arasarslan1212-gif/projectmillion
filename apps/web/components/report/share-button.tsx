@@ -51,7 +51,7 @@ export function ShareButton({ ticker }: { ticker: string }) {
         <Popover.Content
           align="end"
           sideOffset={6}
-          className="z-50 w-80 max-w-[calc(100vw-2rem)] rounded-lg border border-line bg-surface p-3 text-sm shadow-lg"
+          className="z-50 w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-line bg-surface p-3 text-sm shadow-pop"
         >
           <p className="font-semibold">Snapshot link</p>
           {state.busy && <p className="mt-1 text-ink-2">Freezing today&apos;s report…</p>}

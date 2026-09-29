@@ -45,7 +45,7 @@ def raw_sec_check(ua: str) -> None:
     ]
     for label, agent in [
         ("configured", ua),
-        ("name + plain email", "Candor Research candor.research.app@gmail.com"),
+        ("name + plain email", "Sample Company Name AdminContact@example.com"),
         ("browser-like", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko)"),
     ]:
         for url in urls:

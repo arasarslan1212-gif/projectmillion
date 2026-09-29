@@ -626,7 +626,10 @@ export function VerdictCard({
   const [mode] = useReadingMode();
   if (!e && loading) {
     return (
-      <div className="rounded-xl border border-line bg-surface px-4 py-3 sm:px-5" aria-busy="true">
+      <div
+        className="rounded-2xl border border-line bg-surface px-4 py-4 shadow-card sm:px-6"
+        aria-busy="true"
+      >
         <div className="text-[11px] font-medium uppercase tracking-wide text-muted">Verdict</div>
         <Skeleton className="mt-2 h-4 w-full" />
         <Skeleton className="mt-1.5 h-4 w-4/5" />
@@ -636,7 +639,7 @@ export function VerdictCard({
   if (!e || (e.status !== "ok" && e.status !== "partial")) {
     if (!error && !e) return null;
     return (
-      <div className="rounded-xl border border-line bg-surface px-4 py-3 text-sm text-ink-2 sm:px-5">
+      <div className="rounded-2xl border border-line bg-surface px-4 py-4 text-sm text-ink-2 shadow-card sm:px-6">
         The verdict is not available: {e?.reason ?? error}
       </div>
     );
@@ -644,7 +647,7 @@ export function VerdictCard({
   const sents = (e.verdict?.[mode] ?? []) as Sent[];
   const badge = METHOD_BADGE[e.method] ?? METHOD_BADGE.template;
   return (
-    <div className="rounded-xl border border-line bg-surface px-4 py-3 sm:px-5">
+    <div className="rounded-2xl border border-line bg-surface px-4 py-4 shadow-card sm:px-6">
       <div className="flex flex-wrap items-center gap-2">
         <div className="text-[11px] font-medium uppercase tracking-wide text-muted">Verdict</div>
         <Badge tone={badge.tone} className="text-[10px]">
