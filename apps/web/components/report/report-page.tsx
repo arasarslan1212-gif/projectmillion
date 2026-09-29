@@ -4,10 +4,11 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { PriceChart } from "@/components/charts/price-chart";
 import { MissingNote, SectionShell } from "@/components/report/section-shell";
-import { getJSON, useSection } from "@/lib/api";
+import { getJSON, type SectionState, useSection } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { DISCLAIMER_SHORT } from "@/lib/legal";
 import { pushRecent } from "@/lib/recent";
+import type { AnySection } from "@/lib/types";
 import { AnalystsSection } from "./analysts";
 import { DividendsSection } from "./dividends";
 import { EarningsSection } from "./earnings";
@@ -40,29 +41,53 @@ const NAV = [
   { id: "peers", label: "Peers" },
 ];
 
-export function ReportPage({ ticker }: { ticker: string }) {
+/** A report frozen at a point in time (shared snapshot links): sections are supplied, nothing is fetched. */
+export interface FrozenReport {
+  sections: Record<string, AnySection>;
+  generated_at?: string;
+  engine_version?: string;
+  config_hash?: string;
+}
+
+function pick(state: SectionState, frozen: FrozenReport | undefined, name: string): SectionState {
+  if (!frozen) return state;
+  const data = frozen.sections[name] ?? null;
+  return {
+    data,
+    loading: false,
+    error: data ? null : "This section is not part of the snapshot.",
+    notFound: false,
+  };
+}
+
+export function ReportPage({ ticker, frozen }: { ticker: string; frozen?: FrozenReport }) {
   const [version, setVersion] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
-  const company = useSection(ticker, "company", version);
-  const chart = useSection(ticker, "chart", version);
-  const overview = useSection(ticker, "overview", version);
-  const headline = useSection(ticker, "headline", version);
-  const trust = useSection(ticker, "trust", version);
-  const valuation = useSection(ticker, "valuation", version);
-  const analysts = useSection(ticker, "analysts", version);
-  const news = useSection(ticker, "news", version);
-  const earnings = useSection(ticker, "earnings", version);
-  const dividends = useSection(ticker, "dividends", version);
-  const ownership = useSection(ticker, "ownership", version);
-  const risk = useSection(ticker, "risk", version);
-  const fundamentals = useSection(ticker, "fundamentals", version);
-  const explain = useSection(ticker, "explain", version);
+  const src = frozen ? "" : ticker; // an empty ticker disables fetching
+  const company = pick(useSection(src, "company", version), frozen, "company");
+  const chart = pick(useSection(src, "chart", version), frozen, "chart");
+  const overview = pick(useSection(src, "overview", version), frozen, "overview");
+  const headline = pick(useSection(src, "headline", version), frozen, "headline");
+  const trust = pick(useSection(src, "trust", version), frozen, "trust");
+  const valuation = pick(useSection(src, "valuation", version), frozen, "valuation");
+  const analysts = pick(useSection(src, "analysts", version), frozen, "analysts");
+  const news = pick(useSection(src, "news", version), frozen, "news");
+  const earnings = pick(useSection(src, "earnings", version), frozen, "earnings");
+  const dividends = pick(useSection(src, "dividends", version), frozen, "dividends");
+  const ownership = pick(useSection(src, "ownership", version), frozen, "ownership");
+  const risk = pick(useSection(src, "risk", version), frozen, "risk");
+  const fundamentals = pick(useSection(src, "fundamentals", version), frozen, "fundamentals");
+  const explain = pick(useSection(src, "explain", version), frozen, "explain");
   const [peerOverride, setPeerOverride] = useState<string[] | null>(null);
-  const peers = useSection(
-    ticker,
+  const peers = pick(
+    useSection(
+      src,
+      "peers",
+      version,
+      peerOverride ? `peers=${encodeURIComponent(peerOverride.join(","))}` : "",
+    ),
+    frozen,
     "peers",
-    version,
-    peerOverride ? `peers=${encodeURIComponent(peerOverride.join(","))}` : "",
   );
 
   const high52 = company.data?.stats?.high_52w?.value;
@@ -85,8 +110,8 @@ export function ReportPage({ ticker }: { ticker: string }) {
   );
 
   useEffect(() => {
-    if (company.data) pushRecent(company.data.identity.ticker);
-  }, [company.data]);
+    if (company.data && !frozen) pushRecent(company.data.identity.ticker);
+  }, [company.data, frozen]);
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
@@ -112,13 +137,18 @@ export function ReportPage({ ticker }: { ticker: string }) {
 
   return (
     <div className="mx-auto max-w-7xl px-4">
-      <div className="z-30 -mx-4 border-b sm:sticky sm:top-0 border-line bg-page/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-page/80">
+      <div className="z-30 -mx-4 border-b border-line bg-page/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-page/80 sm:sticky sm:top-0 print:static print:bg-transparent print:backdrop-blur-none">
+        <p className="hidden pt-2 text-[10px] text-muted print:block">
+          {frozen ? "Snapshot of the report" : "Report"} generated{" "}
+          {formatDateTime(company.data?.generated_at)} · {DISCLAIMER_SHORT}
+        </p>
         <ReportHeader
           company={company.data}
           headline={headline.data}
           headlineError={headline.error}
-          onRefresh={refresh}
+          onRefresh={frozen ? undefined : refresh}
           refreshing={refreshing}
+          frozen={!!frozen}
         />
         <nav aria-label="Report sections" className="no-print -mx-1 flex gap-1 overflow-x-auto pb-2">
           {NAV.map((n) => (

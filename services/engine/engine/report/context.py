@@ -132,9 +132,8 @@ class ReportContext:
 
     def other_prices(self, ticker: str, days: int | None = None) -> pd.DataFrame:
         if self.as_of < clock.today():
-            days = (
-                None  # a past report needs prices up to its own date: use the full (shared, cached) history
-            )
+            # a past report needs prices up to its own date: use the full (shared, cached) history
+            days = None
         fx = self.data.prices(ticker, days)
         if fx.value is None:
             self.missing[f"prices:{ticker}"] = fx.reason or "unavailable"

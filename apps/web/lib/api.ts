@@ -67,7 +67,8 @@ interface Loaded<T> {
   notFound: boolean;
 }
 
-/** Fetch one report section. While refetching, the previous data stays visible (no skeleton flash). */
+/** Fetch one report section. While refetching, the previous data stays visible (no skeleton flash).
+ * An empty ticker disables fetching (the frozen snapshot page supplies its sections itself). */
 export function useSection<T = AnySection>(
   ticker: string,
   name: string,
@@ -77,6 +78,7 @@ export function useSection<T = AnySection>(
   const key = `${ticker}|${name}|${version}|${query}`;
   const [loaded, setLoaded] = useState<Loaded<T> | null>(null);
   useEffect(() => {
+    if (!ticker) return;
     const ctrl = new AbortController();
     getJSON<T>(`/report/${encodeURIComponent(ticker)}/section/${name}${query ? `?${query}` : ""}`, {
       signal: ctrl.signal,

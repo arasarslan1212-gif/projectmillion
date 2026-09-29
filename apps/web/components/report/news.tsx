@@ -41,8 +41,8 @@ function SentimentChip({ s }: { s: number }) {
     <span
       className={cn(
         "tabular inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-medium",
-        pos && "bg-[var(--diverge-pos)]/12 text-[var(--diverge-pos)]",
-        neg && "bg-[var(--diverge-neg)]/12 text-[var(--diverge-neg)]",
+        pos && "bg-[var(--diverge-pos)]/12 text-accent-ink",
+        neg && "bg-[var(--diverge-neg)]/12 text-critical-ink",
         !pos && !neg && "bg-surface-2 text-ink-2",
       )}
       title={`Sentiment ${s.toFixed(2)} on a −1 to +1 scale`}

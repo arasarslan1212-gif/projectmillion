@@ -242,3 +242,43 @@ We do **not** tune the model's assumptions to the synthetic market's results: th
 
 ### D-050: Methodology is generated from the configuration
 `GET /api/meta/methodology` walks the loaded `engine.yaml`: every value shown is the one the engine runs with. Each value is annotated with the comments written above it or beside it in the file, which a small parser extracts. Only the one-line introductions per section are prose. Dictionaries of per-profile values render as matrices (for example pillar weights by profile). The glossary comes from `metrics.yaml`, the same registry as the tooltips, and `/glossary` shows it on its own. The page states the engine version and config hash.
+
+## M9: Compare, watchlist, sharing, PDF, accessibility, performance
+
+### D-051: Milestones 9 and 10
+The spec's M9 ("compare mode, watchlist, PDF export; mobile, accessibility, performance; docs; the top extra features") was split in two when both were requested:
+- **M9** is the required product surface and polish.
+- **M10** is the extra features ranked in PLAN §6 that were not built yet.
+
+### D-052: Compare and watchlist reuse the report sections
+`/api/compare` and `/api/watchlist/summary` build the same sections as the single-stock report, in parallel, and pass through their Metric objects. A number on the compare page is therefore identical to, and has the same tooltip as, the one on the stock's report.
+- **Compare:** metrics that apply to none of the chosen companies (for example bank ratios among non-banks) are left out rather than shown as rows of "n/a". The price chart uses total-return closes on the dates all the stocks traded, rebased to 100, with the market index dashed.
+- **Watchlist:** stored in the browser (no accounts). Its aggregate is explicitly equal-weight and labeled as an illustration, not an allocation. Volatility and correlations use the last 252 shared trading days.
+
+### D-053: Share links freeze the report on the graded snapshot
+"Share" attaches the full report JSON to today's live snapshot row, the same row the track record grades, and returns its token (`/s/{token}`). The snapshot page renders the stored sections with the normal report components in a frozen mode: nothing is fetched, the refresh and share controls are hidden, and a banner states the date, engine version and config hash. Once the 12-month horizon passes, the banner also shows whether the price landed inside the app's range.
+
+The first share of a day freezes that day's report; later shares that day return the same link. The alternative, updating the stored report on every share, would silently change what earlier recipients see.
+
+### D-054: PDF export is the browser's print-to-PDF with a print stylesheet
+There is no server-side PDF renderer, which would need a headless browser in the stack. The print stylesheet:
+- hides navigation and controls;
+- adds a line with the generation time and disclaimer;
+- prints collapsed sections too (section content is always mounted and only hidden on screen);
+- avoids splitting charts and tables across pages.
+
+A full ZZTEC report prints to 14 A4 pages. A server-rendered PDF is on the ROADMAP.
+
+### D-055: Accessibility audit (axe-core, WCAG 2.1 AA) on every page, light and dark
+The audit found three problems, all fixed:
+- **Low-contrast text.** The purple "synthetic" badge text measured 4.1–4.4:1. Sentiment, surprise and holder-change figures were drawn in the chart diverging colors as text, down to 3.3:1 in dark mode. Stale broker cards were dimmed with opacity. Text now uses dedicated "ink" tokens that pass AA; the chart colors stay for marks and backgrounds. Stale cards use a dashed border and the word "stale" instead of dimming.
+- **Nested interactive content.** The price chart container had `role="img"` but contains the TradingView attribution link, so it is now `role="figure"`.
+
+After the fixes, every page passes with no violations: home, all six reports, compare, watchlist, track record, methodology, glossary, about and a snapshot. No page scrolls horizontally at 390 px.
+
+### D-056: Performance, measured
+On the synthetic market (local provider, SQLite), with all 15 sections requested in parallel as the browser does:
+- **Cold:** 3.0 s for the first report after an engine start, and under 0.7 s for later tickers.
+- **Cached:** under 0.05 s.
+
+Both are within the spec (cold < 15 s, cached < 3 s), and sections render progressively as they arrive. Real providers add network latency to cold loads; the per-provider rate limiters and cache TTLs bound it, but it has not been measured, because the providers are unreachable from the build environment.

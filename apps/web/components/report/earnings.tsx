@@ -135,7 +135,7 @@ export function EarningsSection({ e }: { e: AnySection }) {
                   <td
                     className={cn(
                       "py-1.5 text-right font-medium",
-                      (r.eps_surprise ?? 0) >= 0 ? "text-[var(--diverge-pos)]" : "text-[var(--diverge-neg)]",
+                      (r.eps_surprise ?? 0) >= 0 ? "text-accent-ink" : "text-critical-ink",
                     )}
                   >
                     {formatValue(r.eps_surprise, "pct", { signed: true })}

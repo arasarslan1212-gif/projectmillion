@@ -15,6 +15,21 @@ Open http://localhost:3000. With no keys configured, the app runs in **mock mode
 
 With Docker: `cp .env.example .env && docker compose up` starts PostgreSQL, the engine, the scheduler worker and the web app.
 
+## What's in the app
+
+| Page | What it shows |
+|---|---|
+| `/` | Search with autocomplete, recently viewed, watchlist |
+| `/stock/[ticker]` | The report. Header badges (Trust Rating, the app's P10/P50/P90 target, confidence, all-analyst and trusted consensus), a fact-checked Verdict, and sections for the snapshot, overview, price chart with overlays, Trust Rating, price target and valuation (with DCF what-if sliders), Explain, analysts, news, earnings, dividends, ownership, fundamentals, risk and peers. Plain/Analyst toggle, Share link, PDF (print) |
+| `/compare?t=A,B,C` | Two to four stocks side by side: scores, targets, pillars, key metrics, indexed price chart, pillar radar |
+| `/watchlist` | Watched stocks with scores and risk, and an equal-weight aggregate (volatility, correlation, sector mix) |
+| `/s/[token]` | A shared report, frozen as it was on the day, later showing how its estimate turned out |
+| `/track-record` | How past estimates held up (backtest until live history matures), with the recalibration log |
+| `/methodology`, `/glossary` | Every parameter, generated from `config/engine.yaml`; every metric definition |
+| `/about` | Data sources and attribution, this deployment's providers and mode, legal notes |
+
+Measured on the synthetic market, a cold report takes about 3 s and a cached one under 0.1 s, with sections appearing as they finish (DECISIONS D-056). Every page passes an axe-core WCAG 2.1 AA audit in light and dark mode (D-055).
+
 ## Using real data
 
 1. `cp .env.example .env`, set `DATA_MODE=live`, choose `DATA_TIER` (`free` | `starter` | `pro`), and add keys:

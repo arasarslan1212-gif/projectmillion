@@ -9,7 +9,7 @@ const tones: Record<Tone, string> = {
   good: "border-transparent bg-good/12 text-good-ink",
   warning: "border-transparent bg-warning/18 text-warning-ink",
   critical: "border-transparent bg-critical/12 text-critical-ink",
-  synthetic: "border-transparent bg-synthetic/15 text-synthetic",
+  synthetic: "border-transparent bg-synthetic/15 text-synthetic-ink",
 };
 
 export function Badge({

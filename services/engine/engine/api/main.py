@@ -226,6 +226,50 @@ def definitions() -> dict:
     return {"definitions": load_metric_defs()}
 
 
+@app.get("/api/compare")
+def compare(
+    tickers: str = Query(..., min_length=1), range: str = Query("1y", pattern="^(6m|1y|3y|5y)$")
+) -> dict:
+    """Up to four tickers side by side: scores, targets, key metrics and a normalized price chart."""
+    from engine.views.multi import compare as cmp
+
+    ts = [t.strip() for t in tickers.split(",") if t.strip()]
+    if not 1 <= len(ts) <= 4:
+        raise HTTPException(422, detail="compare takes one to four tickers")
+    return cmp(ts, range)
+
+
+@app.get("/api/watchlist/summary")
+def watchlist_summary(tickers: str = "") -> dict:
+    """Each watched stock's headline numbers plus an equal-weight aggregate of score and risk."""
+    from engine.views.multi import portfolio
+
+    return portfolio([t.strip() for t in tickers.split(",") if t.strip()])
+
+
+@app.post("/api/report/{ticker}/share")
+def share_report(ticker: str) -> dict:
+    """Freeze today's report and return a token for its shareable link (/s/{token})."""
+    from engine.track.share import ShareError, share
+
+    try:
+        return share(ticker)
+    except TickerNotFound:
+        raise _not_found(ticker) from None
+    except ShareError as e:
+        raise HTTPException(409, detail=str(e)) from None
+
+
+@app.get("/api/snapshot/{token}")
+def snapshot(token: str) -> dict:
+    from engine.track.share import shared
+
+    out = shared(token)
+    if out is None:
+        raise HTTPException(404, detail="This snapshot link does not exist.")
+    return out
+
+
 @app.get("/api/meta/methodology")
 def methodology() -> dict:
     """The Methodology page: every parameter from the engine configuration, with its documented meaning."""

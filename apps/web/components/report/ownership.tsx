@@ -150,9 +150,7 @@ export function OwnershipSection({ o }: { o: AnySection }) {
                         {r.role && <span className="block text-muted">{r.role}</span>}
                       </td>
                       <td className="py-1">
-                        <span
-                          className={cn(r.class === "purchase" && "font-medium text-[var(--diverge-pos)]")}
-                        >
+                        <span className={cn(r.class === "purchase" && "font-medium text-accent-ink")}>
                           {r.label}
                         </span>
                         {r.plan_10b5_1 && (
@@ -208,8 +206,8 @@ export function OwnershipSection({ o }: { o: AnySection }) {
                       <td
                         className={cn(
                           "py-1 text-right",
-                          (h.change ?? 0) > 0 && "text-[var(--diverge-pos)]",
-                          (h.change ?? 0) < 0 && "text-[var(--diverge-neg)]",
+                          (h.change ?? 0) > 0 && "text-accent-ink",
+                          (h.change ?? 0) < 0 && "text-critical-ink",
                         )}
                       >
                         {formatValue(h.change, "shares", { signed: true })}

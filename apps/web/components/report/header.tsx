@@ -11,6 +11,7 @@ import { direction, formatDate, formatMetric, formatValue, gradeColor } from "@/
 import { DISCLAIMER_SHORT } from "@/lib/legal";
 import { toggleWatch, useWatchlist } from "@/lib/recent";
 import { ModeToggle } from "./explain";
+import { ShareButton } from "./share-button";
 import type { AnySection } from "@/lib/types";
 
 function HeadlineBadge({
@@ -41,12 +42,14 @@ export function ReportHeader({
   headlineError,
   onRefresh,
   refreshing,
+  frozen = false,
 }: {
   company: AnySection | null;
   headline: AnySection | null;
   headlineError?: string | null;
-  onRefresh: () => void;
+  onRefresh?: () => void;
   refreshing: boolean;
+  frozen?: boolean;
 }) {
   const ticker = company?.identity?.ticker as string | undefined;
   const [watchlist] = useWatchlist();
@@ -79,6 +82,7 @@ export function ReportHeader({
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="truncate text-xl font-semibold tracking-tight sm:text-2xl">{id.name}</h1>
             {company.synthetic && <Badge tone="synthetic">Synthetic test company</Badge>}
+            {frozen && <Badge tone="warning">Frozen snapshot</Badge>}
           </div>
           <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-muted">
             <span className="font-semibold text-ink-2">{id.ticker}</span>
@@ -125,10 +129,13 @@ export function ReportHeader({
             {watched ? <BookmarkCheck className="size-3.5" /> : <Bookmark className="size-3.5" />}
             {watched ? "Watching" : "Watch"}
           </Button>
-          <Button onClick={onRefresh} disabled={refreshing} aria-label="Refresh data">
-            <RefreshCw className={cn("size-3.5", refreshing && "animate-spin")} />
-            <span className="hidden sm:inline">Refresh</span>
-          </Button>
+          {onRefresh && (
+            <Button onClick={onRefresh} disabled={refreshing} aria-label="Refresh data">
+              <RefreshCw className={cn("size-3.5", refreshing && "animate-spin")} />
+              <span className="hidden sm:inline">Refresh</span>
+            </Button>
+          )}
+          {!frozen && ticker && <ShareButton ticker={ticker} />}
           <Button onClick={() => window.print()} aria-label="Export PDF via print dialog">
             <Printer className="size-3.5" />
             <span className="hidden sm:inline">PDF</span>

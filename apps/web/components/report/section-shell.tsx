@@ -20,7 +20,7 @@ export function SourceBadges({ sources }: { sources?: SourceMeta[] }) {
           className={cn(
             "rounded border border-line px-1.5 py-0.5",
             s.status === "stale" && "border-warning/50 text-warning-ink",
-            s.status === "missing" && "line-through opacity-70",
+            s.status === "missing" && "line-through",
           )}
           title={s.reason ?? (s.fetched_at ? `fetched ${formatDateTime(s.fetched_at)}` : undefined)}
         >
@@ -97,7 +97,8 @@ export function SectionShell({
           </Collapsible.Trigger>
           {actions}
         </div>
-        <Collapsible.Content>
+        {/* always mounted, so a collapsed section still prints in full */}
+        <Collapsible.Content forceMount className="data-[state=closed]:hidden print:!block">
           <div className={cn("px-4 pt-3 pb-4 sm:px-5", loading && data && "opacity-60 transition-opacity")}>
             {!data && loading && (
               <div className="space-y-2" aria-busy="true" aria-label={`Loading ${title}`}>

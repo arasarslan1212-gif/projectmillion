@@ -27,8 +27,7 @@ function ratingColor(c: ThemeColors, norm: number | null | undefined): string {
 
 /** Shape carries the rating as well as color: ▲ Buy, ● Hold, ▼ Sell. */
 function RatingGlyph({ norm }: { norm: number | null | undefined }) {
-  const cls =
-    norm === 1 ? "text-[var(--diverge-pos)]" : norm === -1 ? "text-[var(--diverge-neg)]" : "text-muted";
+  const cls = norm === 1 ? "text-accent-ink" : norm === -1 ? "text-critical-ink" : "text-muted";
   return (
     <span className={cn("inline-block w-3 text-center text-[10px]", cls)} aria-hidden>
       {norm === 1 ? "▲" : norm === -1 ? "▼" : "●"}
@@ -537,7 +536,12 @@ function AnalystDetail({ r }: { r: AnySection }) {
 
 function FirmCard({ f }: { f: AnySection }) {
   return (
-    <div className={cn("flex min-w-0 flex-col rounded-lg border border-line p-3", f.stale && "opacity-80")}>
+    <div
+      className={cn(
+        "flex min-w-0 flex-col rounded-lg border border-line p-3",
+        f.stale && "border-dashed bg-surface-2/50",
+      )}
+    >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="truncate text-sm font-semibold" title={f.firm}>
@@ -561,7 +565,10 @@ function FirmCard({ f }: { f: AnySection }) {
             {formatValue(f.target_change, "pct", { signed: true, digits: 0 })}
           </span>
         )}
-        <span className="ml-auto text-xs text-muted">{formatDate(f.date)}</span>
+        <span className="ml-auto text-xs text-muted">
+          {formatDate(f.date)}
+          {f.stale && " · stale"}
+        </span>
       </div>
       <p className="mt-1.5 text-xs text-ink-2">{f.summary}</p>
       <p className="mt-1 text-xs text-muted">{f.reasoning ?? f.reasoning_note}</p>

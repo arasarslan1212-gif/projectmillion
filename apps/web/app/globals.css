@@ -39,6 +39,7 @@
   --diverge-mid: #f0efec;
   --diverge-pos: #2a78d6;
   --synthetic: #7a4bd1;
+  --synthetic-ink: #5f35b0;
 }
 
 :root[data-theme="dark"] {
@@ -72,6 +73,7 @@
   --s8: #e66767;
   --diverge-mid: #383835;
   --synthetic: #a47ff0;
+  --synthetic-ink: #c4adff;
 }
 
 @theme inline {
@@ -95,6 +97,7 @@
   --color-critical: var(--critical);
   --color-critical-ink: var(--critical-ink);
   --color-synthetic: var(--synthetic);
+  --color-synthetic-ink: var(--synthetic-ink);
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
@@ -131,13 +134,29 @@ body {
 }
 
 @media print {
-  .no-print {
+  @page {
+    margin: 12mm;
+  }
+  .no-print,
+  nav[aria-label="Report sections"] {
     display: none !important;
   }
   .report-section {
-    break-inside: avoid-page;
+    break-inside: auto;
+    border-color: #d4d4d4;
+  }
+  .report-section h2 {
+    break-after: avoid;
+  }
+  /* keep charts and tables whole where possible */
+  [role="img"],
+  table,
+  figure {
+    break-inside: avoid;
   }
   body {
     background: white;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 }

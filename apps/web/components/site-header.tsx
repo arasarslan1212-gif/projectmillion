@@ -47,7 +47,7 @@ export function SyntheticBanner() {
   return (
     <div
       role="note"
-      className="no-print border-b border-synthetic/30 bg-synthetic/10 px-4 py-1.5 text-center text-xs font-medium text-synthetic"
+      className="no-print border-b border-synthetic/30 bg-synthetic/10 px-4 py-1.5 text-center text-xs font-medium text-synthetic-ink"
     >
       SYNTHETIC TEST DATA: every company, price, analyst and headline shown here is generated for testing and
       is not real. Configure data providers to see real companies.

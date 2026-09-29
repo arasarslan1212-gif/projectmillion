@@ -752,7 +752,7 @@ export function PriceChart({
       <div
         ref={box}
         className={cn("mt-1 w-full", t.rsi || t.macd ? "h-[520px]" : "h-[400px]", "max-sm:h-[340px]")}
-        role="img"
+        role="figure"
         aria-label={`Price chart for ${ticker}, ${range} range. Use the data table for exact values.`}
       />
 
