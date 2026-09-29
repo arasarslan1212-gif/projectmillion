@@ -34,7 +34,8 @@ jobs:
           DATA_TIER: free
           PRICE_SOURCE: finnhub
           DATABASE_URL: sqlite:///${{ runner.temp }}/probe.db
-          SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT || format('Candor stock research https://github.com/{0}', github.repository) }}
+          # SEC fair access: name the app and give a contact email. Set the SEC_USER_AGENT secret to your own.
+          SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT || format('Candor stock research (github.com/{0}) {1}@users.noreply.github.com', github.repository, github.repository_owner) }}
           FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
         run: |

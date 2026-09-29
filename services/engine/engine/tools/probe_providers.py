@@ -9,6 +9,7 @@ Usage (from services/engine, DATA_MODE=live):
 
 from __future__ import annotations
 
+import logging
 import sys
 import time
 from datetime import date
@@ -36,6 +37,9 @@ def summary(v) -> str:
 
 def main() -> int:
     tickers = [t.upper() for t in sys.argv[1:]] or ["AAPL"]
+    # the data layer logs each provider failure with its raw message; show those under the summary lines
+    logging.basicConfig(level=logging.INFO, format="      log %(name)s: %(message)s")
+    logging.getLogger("httpx").setLevel(logging.WARNING)
     s = get_settings()
     init_db()
     print(f"data_mode={s.data_mode} tier={s.data_tier} price_source={s.price_source}")

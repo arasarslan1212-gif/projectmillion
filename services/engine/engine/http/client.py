@@ -52,6 +52,11 @@ class ProviderError(Exception):
         self.message = message
 
     def user_reason(self) -> str:
+        if self.provider == "sec" and self.kind == "auth":  # the SEC has no keys; a 403 means the User-Agent
+            return (
+                "SEC EDGAR refused the request: its fair-access policy requires a User-Agent naming the app "
+                "and a contact email (SEC_USER_AGENT)"
+            )
         return {
             "not_configured": f"{self.provider} is not configured on this data tier",
             "plan_restricted": f"{self.provider} requires a higher subscription plan for this data",
