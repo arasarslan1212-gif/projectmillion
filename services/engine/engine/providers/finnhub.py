@@ -1,7 +1,8 @@
 """Finnhub adapter (https://finnhub.io/api/v1). Free tier: 60 calls/min.
 
 Used for: company news (free), recommendation trends (free, consensus distribution only),
-earnings surprises (free: recent quarters) and the earnings calendar.
+earnings surprises (free: recent quarters) and the earnings calendar; with PRICE_SOURCE=finnhub, also daily
+candles and the latest quote (the public site's price source; see DECISIONS D-064).
 """
 
 from __future__ import annotations
@@ -14,6 +15,9 @@ from engine.providers.models import (
     EarningsEvent,
     Estimate,
     NewsItem,
+    PriceBar,
+    PriceHistory,
+    Quote,
     RecommendationTrend,
     TargetConsensus,
 )
@@ -137,3 +141,43 @@ class Finnhub:
 
     def estimates(self, ticker: str) -> list[Estimate]:
         return []  # premium on Finnhub
+
+    # ---- prices (PRICE_SOURCE=finnhub) ------------------------------------------------
+    def history(self, ticker: str, start: date, end: date) -> PriceHistory:
+        """Daily candles. Finnhub adjusts them for splits; dividends aren't part of the free data, so adj_close is
+        the split-adjusted close (price return, not total return)."""
+        t0 = int(datetime(start.year, start.month, start.day, tzinfo=UTC).timestamp())
+        t1 = int(datetime(end.year, end.month, end.day, 23, 59, tzinfo=UTC).timestamp())
+        b = self._get("stock/candle", symbol=ticker.upper(), resolution="D", **{"from": t0, "to": t1})
+        if not isinstance(b, dict) or b.get("s") not in ("ok", "no_data"):
+            raise ProviderError("finnhub", "bad_response", str(b)[:200])
+        bars = []
+        if b.get("s") == "ok":
+            for t, o, h, lo, c, v in zip(b["t"], b["o"], b["h"], b["l"], b["c"], b["v"], strict=False):
+                bars.append(
+                    PriceBar(
+                        date=datetime.fromtimestamp(int(t), tz=UTC).date(),
+                        open=o,
+                        high=h,
+                        low=lo,
+                        close=float(c),
+                        adj_close=float(c),
+                        volume=v,
+                    )
+                )
+        return PriceHistory(ticker=ticker.upper(), bars=bars, source="Finnhub", as_of=end)
+
+    def quote(self, ticker: str) -> Quote | None:
+        r = self._get("quote", symbol=ticker.upper())
+        if not isinstance(r, dict) or not r.get("c"):  # unknown symbols come back as zeros
+            return None
+        ts = r.get("t")
+        return Quote(
+            ticker=ticker.upper(),
+            price=float(r["c"]),
+            change=r.get("d"),
+            change_pct=r["dp"] / 100 if r.get("dp") is not None else None,
+            prev_close=r.get("pc"),
+            timestamp=datetime.fromtimestamp(int(ts), tz=UTC) if ts else None,
+            source="Finnhub",
+        )

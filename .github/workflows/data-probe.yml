@@ -1,0 +1,42 @@
+# Checks the engine's live data sources (SEC EDGAR, Finnhub, FRED, FINRA) through its own adapters, with keys from
+# repository secrets. Prints what each source returned, never the data or the keys.
+name: Data probe
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, claude/problem-solution-brainstorm-us4vrq]
+    paths:
+      - services/engine/engine/providers/**
+      - services/engine/engine/http/**
+      - services/engine/engine/data/**
+      - services/engine/engine/tools/probe_providers.py
+      - .github/workflows/data-probe.yml
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: services/engine/uv.lock
+      - name: Probe the live sources
+        working-directory: services/engine
+        env:
+          DATA_MODE: live
+          DATA_TIER: free
+          PRICE_SOURCE: finnhub
+          DATABASE_URL: sqlite:///${{ runner.temp }}/probe.db
+          SEC_USER_AGENT: ${{ secrets.SEC_USER_AGENT || format('Candor stock research https://github.com/{0}', github.repository) }}
+          FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        run: |
+          uv sync --frozen --no-dev
+          uv run --frozen --no-dev python -m engine.tools.probe_providers AAPL JPM O

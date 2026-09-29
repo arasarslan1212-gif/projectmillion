@@ -39,6 +39,10 @@ class Settings(BaseSettings):
     tiingo_api_key: str | None = None
     massive_api_key: str | None = None
 
+    # Where daily prices come from on the free tier: "tiingo", "finnhub", or "auto" (Tiingo if its key is set,
+    # else Finnhub if its key is set). Replays of recorded data must name the source they were recorded with.
+    price_source: str = "auto"
+
     anthropic_api_key: str | None = None
     fast_model: str = "claude-haiku-4-5-20251001"
     reasoning_model: str = "claude-sonnet-5"

@@ -27,8 +27,8 @@ class Providers:
     fundamentals: SecEdgar
     universe: SecEdgar
     screener: Fmp | None
-    prices: Tiingo | Fmp
-    quote: Fmp | None
+    prices: Tiingo | Fmp | Finnhub
+    quote: Fmp | Finnhub | None
     profile: Fmp | None
     estimates: Fmp | None
     earnings: list  # ordered fallbacks
@@ -81,6 +81,17 @@ class Providers:
         }
 
 
+def free_prices(finnhub: Finnhub, http: HttpClient) -> Tiingo | Finnhub:
+    """The free tier's price source. Tiingo's free plan is personal use only, so the public site uses Finnhub."""
+    s = get_settings()
+    src = s.price_source.lower()
+    if src == "auto":
+        src = "finnhub" if s.finnhub_api_key and not s.tiingo_api_key else "tiingo"
+    if src not in ("tiingo", "finnhub"):
+        raise ValueError(f"PRICE_SOURCE must be tiingo, finnhub or auto, not {s.price_source!r}")
+    return finnhub if src == "finnhub" else Tiingo(http)
+
+
 def build_providers(tier: str | None = None, http: HttpClient | None = None) -> Providers:
     tier = tier or get_settings().data_tier
     http = http or get_http()
@@ -88,7 +99,7 @@ def build_providers(tier: str | None = None, http: HttpClient | None = None) -> 
     finnhub = Finnhub(http)
     fmp = Fmp(http) if tier in ("starter", "pro") else None
     massive = MassiveBenzinga(http) if tier == "pro" else None
-    prices = fmp if fmp else Tiingo(http)
+    prices = fmp or free_prices(finnhub, http)
     analysts = massive or fmp
     return Providers(
         tier=tier,
@@ -98,7 +109,7 @@ def build_providers(tier: str | None = None, http: HttpClient | None = None) -> 
         universe=sec,
         screener=fmp,
         prices=prices,
-        quote=fmp,
+        quote=fmp or (finnhub if prices is finnhub else None),
         profile=fmp,
         estimates=fmp,
         earnings=[p for p in (fmp, finnhub) if p is not None],
