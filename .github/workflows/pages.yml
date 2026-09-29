@@ -1,0 +1,77 @@
+# Publishes the static demo to GitHub Pages: the engine's API responses for the synthetic market are exported to
+# JSON (engine.tools.export_static), then the web app is built as a static site that reads them.
+# Requires Settings → Pages → Build and deployment → Source: "GitHub Actions".
+name: Pages demo
+
+on:
+  push:
+    branches: [main, claude/problem-solution-brainstorm-us4vrq]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: pages
+        uses: actions/configure-pages@v5
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: services/engine/uv.lock
+
+      - name: Install engine
+        working-directory: services/engine
+        run: uv sync --frozen --no-dev
+
+      - name: Export the engine's responses for the synthetic market
+        working-directory: services/engine
+        env:
+          DATA_MODE: mock
+          FIXTURE_SET: synthetic
+          DATABASE_URL: sqlite:///${{ runner.temp }}/demo.db
+        run: uv run --frozen --no-dev python -m engine.tools.export_static --out ../../apps/web/public/data
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Build the static site
+        working-directory: apps/web
+        env:
+          STATIC_DEMO: "1"
+          NEXT_PUBLIC_STATIC_DEMO: "1"
+          NEXT_PUBLIC_BASE_PATH: ${{ steps.pages.outputs.base_path }}
+          NEXT_TELEMETRY_DISABLED: "1"
+        run: |
+          npm ci --no-audit --no-fund
+          npx next build
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/web/out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

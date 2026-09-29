@@ -12,6 +12,7 @@ import { cn } from "@/lib/cn";
 import { formatDate } from "@/lib/format";
 import { useWatchlist } from "@/lib/recent";
 import type { AnySection } from "@/lib/types";
+import { STATIC_DEMO, STATIC_NOTE } from "@/lib/static";
 
 const ICONS: Record<string, typeof Target> = {
   band: Target,
@@ -93,14 +94,20 @@ export function AlertsPage() {
             , checked daily. Each alert links to its evidence.
           </p>
         </div>
-        <Button onClick={run} disabled={busy || !list.length}>
+        <Button onClick={run} disabled={busy || !list.length || STATIC_DEMO}>
           <RefreshCw className={cn("size-3.5", busy && "animate-spin")} /> Check now
         </Button>
-        <Button onClick={readAll} disabled={busy || !data?.unread}>
+        <Button onClick={readAll} disabled={busy || !data?.unread || STATIC_DEMO}>
           <CheckCheck className="size-3.5" /> Mark all read
         </Button>
       </div>
 
+      {STATIC_DEMO && (
+        <p className="mt-4 rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm text-ink-2">
+          In this demo the inbox was generated once for a watchlist of all six example stocks; checking,
+          marking read and switching rules need the live engine. {STATIC_NOTE}
+        </p>
+      )}
       {error && <p className="mt-4 text-sm text-critical-ink">Alerts could not be loaded: {error}</p>}
       {!data && !error && <Skeleton className="mt-6 h-64 w-full" />}
 
@@ -180,7 +187,7 @@ export function AlertsPage() {
                     <Switch.Root
                       id={id}
                       checked={r.enabled}
-                      disabled={busy}
+                      disabled={busy || STATIC_DEMO}
                       onCheckedChange={(v) => toggle(r.kind, v)}
                       className="relative h-5 w-9 shrink-0 rounded-full border border-line bg-surface-2 transition-colors data-[state=checked]:bg-accent-ink"
                     >

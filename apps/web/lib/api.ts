@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { STATIC_DEMO, staticFile, staticUrl } from "./static";
 import type { AnySection, Definition, Health, SearchResult } from "./types";
 
 const BASE = "/api/engine";
@@ -14,7 +15,19 @@ export class ApiError extends Error {
   }
 }
 
+async function getStatic<T>(path: string, init?: RequestInit): Promise<T> {
+  if (init?.method && init.method !== "GET")
+    throw new ApiError(501, "This action needs the live engine and is not part of the static demo.");
+  const file = staticFile(path);
+  if (!file) throw new ApiError(404, "Not part of the static demo.");
+  const r = await fetch(staticUrl(file), { signal: init?.signal });
+  if (!r.ok)
+    throw new ApiError(404, "Not part of the static demo, which covers the six synthetic example stocks.");
+  return (await r.json()) as T;
+}
+
 export async function getJSON<T>(path: string, init?: RequestInit): Promise<T> {
+  if (STATIC_DEMO) return getStatic<T>(path, init);
   const r = await fetch(`${BASE}${path}`, { cache: "no-store", ...init });
   if (!r.ok) {
     let msg = `Request failed (${r.status})`;
@@ -29,8 +42,16 @@ export async function getJSON<T>(path: string, init?: RequestInit): Promise<T> {
   return (await r.json()) as T;
 }
 
-export function search(q: string, signal?: AbortSignal): Promise<{ results: SearchResult[] }> {
-  return getJSON(`/search?q=${encodeURIComponent(q)}`, { signal });
+let symbolsPromise: Promise<SearchResult[]> | null = null;
+
+export async function search(q: string, signal?: AbortSignal): Promise<{ results: SearchResult[] }> {
+  if (!STATIC_DEMO) return getJSON(`/search?q=${encodeURIComponent(q)}`, { signal });
+  symbolsPromise ??= fetch(staticUrl("symbols.json")).then((r) => r.json() as Promise<SearchResult[]>);
+  const s = q.trim().toLowerCase();
+  const all = await symbolsPromise;
+  return {
+    results: all.filter((x) => x.ticker.toLowerCase().startsWith(s) || x.name.toLowerCase().includes(s)),
+  };
 }
 
 let healthPromise: Promise<Health> | null = null;

@@ -346,3 +346,20 @@ Rules:
 - a new 8-K, with its item descriptions.
 
 Each event links to its evidence and is stored once. A newly watched stock is checked back 60 days. Rules can be switched off per kind. Delivery is in-app only (email and push are on the ROADMAP), and alerts describe what changed, never what to do.
+
+## Static demo
+
+### D-062: GitHub Pages hosts a static export, not the app
+Pages serves only static files, so it can't run the engine or Next's server rendering. The demo is built in three steps:
+
+- **Export.** `engine.tools.export_static` calls the real API routes in-process through FastAPI's test client, after the synthetic backtest and recalibration. It writes each response verbatim, so the demo shows exactly what the live app shows.
+- **Map requests to files.** In static mode, `lib/api.ts` answers GET requests from `/data/...` files. The file layout is defined once on each side: `export_static.py` and `lib/static.ts`.
+- **Pre-render pages.** `generateStaticParams` pre-renders a report page per exported ticker and the exported snapshot.
+
+What the export covers:
+- the six synthetic headline stocks;
+- every 2–4 stock compare set in each range;
+- every watchlist subset;
+- the alerts inbox for a watchlist of all six.
+
+Anything that writes or computes on request fails soft with a note, not a broken page: POST and PUT calls, the what-if DCF, peer editing, sharing, refresh, and alert actions. Pages is deployed from Actions (`upload-pages-artifact` + `deploy-pages`) rather than from a branch, so Jekyll never touches the build and the repository keeps no build output.

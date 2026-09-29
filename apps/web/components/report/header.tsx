@@ -13,6 +13,7 @@ import { toggleWatch, useWatchlist } from "@/lib/recent";
 import { ModeToggle } from "./explain";
 import { ShareButton } from "./share-button";
 import type { AnySection } from "@/lib/types";
+import { STATIC_DEMO } from "@/lib/static";
 
 function HeadlineBadge({
   label,
@@ -135,7 +136,7 @@ export function ReportHeader({
               <span className="hidden sm:inline">Refresh</span>
             </Button>
           )}
-          {!frozen && ticker && <ShareButton ticker={ticker} />}
+          {!frozen && !STATIC_DEMO && ticker && <ShareButton ticker={ticker} />}
           <Button onClick={() => window.print()} aria-label="Export PDF via print dialog">
             <Printer className="size-3.5" />
             <span className="hidden sm:inline">PDF</span>

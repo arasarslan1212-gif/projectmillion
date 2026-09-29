@@ -25,6 +25,7 @@ import { QuantSection } from "./quant";
 import { RiskSection } from "./risk";
 import { TrustSection } from "./trust";
 import { ValuationSection } from "./valuation";
+import { STATIC_DEMO } from "@/lib/static";
 
 const NAV = [
   { id: "snapshot", label: "Snapshot" },
@@ -152,7 +153,7 @@ export function ReportPage({ ticker, frozen }: { ticker: string; frozen?: Frozen
           company={company.data}
           headline={headline.data}
           headlineError={headline.error}
-          onRefresh={frozen ? undefined : refresh}
+          onRefresh={frozen || STATIC_DEMO ? undefined : refresh}
           refreshing={refreshing}
           frozen={!!frozen}
         />

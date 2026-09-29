@@ -15,6 +15,26 @@ Open http://localhost:3000. With no keys configured, the app runs in **mock mode
 
 With Docker: `cp .env.example .env && docker compose up` starts PostgreSQL, the engine, the scheduler worker and the web app.
 
+## Static demo (GitHub Pages)
+
+GitHub Pages can't run the engine, so `.github/workflows/pages.yml` publishes a read-only static demo:
+
+1. It runs the backtest on the synthetic market.
+2. It exports the engine's API responses for the six synthetic stocks to JSON with `python -m engine.tools.export_static`. These are the exact responses the live API gives, covering every report section, every compare and watchlist combination, the track record, the alerts inbox and one shared snapshot.
+3. It builds the web app as a static site (`STATIC_DEMO=1 NEXT_PUBLIC_STATIC_DEMO=1 next build`) that reads those files.
+
+To enable it, set **Settings → Pages → Build and deployment → Source** to **GitHub Actions**. After the next push, or a manual run of the "Pages demo" workflow, the site is at `https://<owner>.github.io/<repo>/`.
+
+In the demo, the features that need a live engine are disabled and say so: the what-if DCF, editing peers, share links, refresh, and checking or changing alerts. Other tickers are not available.
+
+To try it locally:
+
+```bash
+cd services/engine && DATA_MODE=mock FIXTURE_SET=synthetic DATABASE_URL=sqlite:///demo.db \
+  .venv/bin/python -m engine.tools.export_static --out ../../apps/web/public/data   # --no-backtest for a quick run
+cd ../../apps/web && STATIC_DEMO=1 NEXT_PUBLIC_STATIC_DEMO=1 npx next build   # site in apps/web/out
+```
+
 ## What's in the app
 
 | Page | What it shows |

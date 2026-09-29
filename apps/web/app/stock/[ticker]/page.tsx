@@ -1,5 +1,11 @@
 import type { Metadata } from "next";
 import { ReportPage } from "@/components/report/report-page";
+import { staticManifest } from "@/lib/static-params";
+
+// Static demo builds pre-render the exported tickers; the live app renders any ticker on demand.
+export function generateStaticParams() {
+  return staticManifest().tickers.map((ticker) => ({ ticker }));
+}
 
 export async function generateMetadata({
   params,
