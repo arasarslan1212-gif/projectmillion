@@ -1,0 +1,18 @@
+# Render Blueprint (https://render.com/docs/blueprint-spec): New → Blueprint → pick this repository.
+# The free plan (512 MB, a fraction of a CPU, sleeps when idle) is tight for this app; "starter" is more comfortable.
+services:
+  - type: web
+    name: candor
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /api/engine/health
+    envVars:
+      - key: SEC_USER_AGENT # your "Name email", required by the SEC
+        sync: false
+      - key: FINNHUB_API_KEY
+        sync: false
+      - key: TIINGO_API_KEY
+        sync: false
+      - key: FRED_API_KEY
+        sync: false

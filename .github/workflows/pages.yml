@@ -7,11 +7,8 @@
 # Without them, the site runs on the synthetic market. Requires Settings → Pages → Source: "GitHub Actions".
 name: Pages demo
 
+# Manual only: the live app (Dockerfile, .github/workflows/deploy.yml) is the main deployment.
 on:
-  push:
-    branches: [main, claude/problem-solution-brainstorm-us4vrq]
-  schedule:
-    - cron: "23 6 * * 2-6" # weekdays, after the US close has settled
   workflow_dispatch:
 
 permissions:

@@ -25,6 +25,11 @@ const nextConfig: NextConfig = {
         images: { unoptimized: true },
       }
     : {
+        // NEXT_OUTPUT=standalone: a self-contained server for the Docker image (Dockerfile at the repo root)
+        ...(process.env.NEXT_OUTPUT === "standalone" ? { output: "standalone" as const } : {}),
+        // A first report on live data fetches filings, prices and peers under provider rate limits, which can
+        // take longer than the proxy's default 30 s.
+        experimental: { proxyTimeout: 300_000 },
         async rewrites() {
           return [{ source: "/api/engine/:path*", destination: `${ENGINE_URL}/api/:path*` }];
         },

@@ -387,3 +387,20 @@ The owner asked for real stocks on the public site, using a free Finnhub key, an
 - **What visitors get.** Every listed stock gets an instant saved answer. Everything else is computed live: what-ifs, refresh, compare sets and watchlists, which aren't saved beyond six stocks because their number grows combinatorially. Stocks outside the list have no data.
 - **SEC User-Agent.** From GitHub's runners the SEC accepted "Name email" but refused a header containing a URL, and refused a GitHub no-reply address. So `SEC_USER_AGENT` must be the owner's real contact, set as a secret.
 - **Tested without keys.** A test records the synthetic market through the record path, then replays it in the browser bridge with an empty fixture folder and on-demand downloads. The replayed report sections match the saved answers exactly.
+
+### D-065: The live app is one container on Hugging Face Spaces
+The owner wants an app that researches any stock live, not a static site. The engine can't run as serverless functions on Vercel, for two reasons:
+- Its runtime libraries come to about 280 MB (numpy, pandas and scipy), over Vercel's 250 MB limit for Python functions.
+- A report's 17 sections share one in-memory company context, and free provider plans limit calls per minute; stateless function instances would refetch everything for each section.
+
+So the app ships as one Docker image, the root `Dockerfile`:
+- the engine (uvicorn on 127.0.0.1:8000) and the Next.js standalone server, which forwards `/api/engine/*` to the engine with a 5-minute proxy timeout, since first reports on live data can be slow;
+- `deploy/start.sh` picks live mode when `SEC_USER_AGENT` and a price key are set, and the labeled synthetic market otherwise.
+
+The deploy workflow:
+1. builds the image;
+2. smoke-tests it through the web server as a browser would (`deploy/smoke.py`);
+3. tests it on live data when the data secrets exist, as a diagnostic;
+4. with `HF_TOKEN`, deploys to a Hugging Face Space (`deploy/hf_space.py`: create a private Space, copy the keys into its secrets, upload, wait until it runs, print the logs on failure).
+
+Why Hugging Face: its free CPU Spaces offer 2 vCPUs and 16 GB with no card, against 512 MB and a fraction of a CPU on Render's free plan (`render.yaml` is kept as an alternative). The Space is private by default, keeping within the free data plans' personal-use terms. The static site (D-062 to D-064) remains available by manual run.

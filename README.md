@@ -66,6 +66,22 @@ cd ../../apps/web && STATIC_DEMO=1 NEXT_PUBLIC_STATIC_DEMO=1 NEXT_PUBLIC_BROWSER
 
 Serve `apps/web/out` with any static file server. Leave out `NEXT_PUBLIC_BROWSER_ENGINE` for a read-only site that shows only the saved answers.
 
+## Deploy the live app
+
+The app runs as one Docker container: the Python engine and the web server together (the `Dockerfile` at the repository root). With data keys it researches any US-listed stock live; without them it runs on the synthetic market, labeled as such. `.github/workflows/deploy.yml` builds and tests the image on every push and deploys it to a [Hugging Face Space](https://huggingface.co/spaces). Spaces are free and run the container on 2 CPUs and 16 GB of memory; a free Space sleeps after two days without visits and wakes on the next one.
+
+1. Create a free account at https://huggingface.co. In Settings → Access Tokens, create a token with **Write** permission.
+2. In this repository, open **Settings → Secrets and variables → Actions** and add these secrets:
+   - `HF_TOKEN`: the token from step 1.
+   - `SEC_USER_AGENT`: your name and email, e.g. `Jane Doe jane@example.com`. The SEC requires a real contact.
+   - `FINNHUB_API_KEY`: a free key from https://finnhub.io/register.
+   - Optional: `TIINGO_API_KEY` for fuller price history (free, personal use), `FRED_API_KEY` for live interest rates, and `FMP_API_KEY` for the paid starter tier.
+3. Run **Actions → Deploy app → Run workflow**; later pushes deploy automatically.
+
+The workflow creates a **private** Space named `<you>/candor`: only you, signed in to Hugging Face, can open it, which keeps within the free data plans' personal-use terms. It copies your keys into the Space's secrets and prints the app's address when it's running. To use a different Space, set the `HF_SPACE` repository variable (owner/name); to make a new Space public, set `HF_SPACE_PRIVATE` to `false`.
+
+The same image runs on any Docker host (Render via `render.yaml`, Railway, Fly.io, a VPS). Pass the same variables and route port `$PORT` (default 7860). The database is SQLite in `/tmp`, so history (track record, alerts) resets when the container restarts, unless `DATABASE_URL` points at persistent storage.
+
 ## What's in the app
 
 | Page | What it shows |

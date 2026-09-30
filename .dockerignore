@@ -4,3 +4,9 @@
 **/__pycache__
 **/*.db
 .git
+**/out
+apps/web/public/data
+apps/web/public/engine
+apps/web/e2e-*.png
+**/.pytest_cache
+**/.ruff_cache
