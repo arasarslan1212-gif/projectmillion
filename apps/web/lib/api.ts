@@ -6,6 +6,8 @@ import { BROWSER_ENGINE, STATIC_DEMO, isStateful, noteEngineChange, staticFile, 
 import type { AnySection, Definition, Health, SearchResult } from "./types";
 
 const BASE = "/api/engine";
+const ENGINE_UNREACHABLE =
+  "The analysis engine isn't reachable. This build of the web app needs the Python engine running next to it (make dev); to host the app on its own, build the static site (scripts/build-static-site.sh)";
 
 export class ApiError extends Error {
   constructor(
@@ -47,9 +49,19 @@ async function getStatic<T>(path: string, init?: RequestInit): Promise<T> {
 
 export async function getJSON<T>(path: string, init?: RequestInit): Promise<T> {
   if (STATIC_DEMO) return getStatic<T>(path, init);
-  const r = await fetch(`${BASE}${path}`, { cache: "no-store", ...init });
+  let r: Response;
+  try {
+    r = await fetch(`${BASE}${path}`, { cache: "no-store", ...init });
+  } catch (e) {
+    if ((e as Error).name === "AbortError") throw e;
+    throw new ApiError(0, ENGINE_UNREACHABLE);
+  }
   if (!r.ok) {
-    let msg = `Request failed (${r.status})`;
+    // The engine always explains its errors in JSON; anything else came from the proxy in front of it.
+    let msg =
+      r.status >= 500 || r.status === 404
+        ? `${ENGINE_UNREACHABLE} (HTTP ${r.status})`
+        : `Request failed (${r.status})`;
     try {
       const body = await r.json();
       if (body?.detail) msg = typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail);

@@ -28,6 +28,15 @@ On the site, saved answers show at once and everything else is computed live in 
 
 To enable it, set **Settings → Pages → Build and deployment → Source** to **GitHub Actions**. After the next push, or a manual run of the "Pages demo" workflow, the site is at `https://<owner>.github.io/<repo>/`.
 
+### On Vercel (or another static host)
+
+`vercel.json` (at the repository root and in `apps/web`, whichever the Vercel project uses as its root) builds this same self-contained site with `apps/web/scripts/build-static-site.sh`: the engine export and bundle, then the static build into `apps/web/out`. A plain `next build` isn't enough on its own: that build expects the Python engine running next to it and shows "The analysis engine isn't reachable" without it.
+
+On Vercel:
+- With `apps/web` as the Root Directory, keep **Include files outside the root directory** enabled, because the build needs `services/engine`.
+- To use real data, set the same `FINNHUB_API_KEY` and `SEC_USER_AGENT` as Environment Variables.
+- Builds take about 10 minutes, mostly the synthetic backtest. `SKIP_BACKTEST=1` skips it, leaving the track record empty.
+
 ### Real stocks on the site
 
 Add these repository secrets (**Settings → Secrets and variables → Actions**):
