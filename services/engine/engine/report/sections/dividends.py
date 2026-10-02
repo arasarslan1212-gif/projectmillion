@@ -29,6 +29,15 @@ def build(ctx: ReportContext) -> dict:
     divs = ctx.dividends
     p0 = ctx.last_price
     as_of = ctx.as_of
+    if ctx.price_history is None:
+        # dividend events come with the daily price history; without it, "no dividends" would be a guess
+        return section(
+            "dividends",
+            status="missing",
+            reason=ctx.missing.get(
+                "prices", "the daily price history, which carries dividend events, is unavailable"
+            ),
+        )
     recent = [x for x in divs if (as_of - x[0]).days <= 730]
     if not recent:
         return section(

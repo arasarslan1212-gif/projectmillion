@@ -43,7 +43,7 @@ Add these repository secrets (**Settings → Secrets and variables → Actions**
 
 | Secret | Value |
 |---|---|
-| `FINNHUB_API_KEY` | A free key from https://finnhub.io/register. It supplies prices, quotes, news, analyst consensus and earnings. |
+| `FINNHUB_API_KEY` | A free key from https://finnhub.io/register. It supplies quotes, news, analyst consensus and earnings; its free plan has no daily price history, so the price chart, risk and quant sections stay empty without a price source. |
 | `SEC_USER_AGENT` | Your app name and a contact email, e.g. `Candor Research you@example.com`. The SEC requires a reachable contact and refuses others, including GitHub no-reply addresses. |
 | `FRED_API_KEY` (optional) | A free key from FRED, for live interest rates. Without it, rates fall back to the config's defaults. |
 
@@ -79,7 +79,7 @@ The app runs as one Docker container: the Python engine and the web server toget
 3. Fill in the values it asks for, then click **Apply**:
    - `SEC_USER_AGENT`: your name and email, e.g. `Jane Doe jane@example.com`. The SEC requires a real contact.
    - `FINNHUB_API_KEY`: a free key from https://finnhub.io/register (quotes, news, analyst consensus, earnings).
-   - `TIINGO_API_KEY`: a free key from https://www.tiingo.com (daily price history; Finnhub's free plan has none). Without it, the price chart, valuation and risk sections stay empty.
+   - `TIINGO_API_KEY`: a free key from https://www.tiingo.com (daily price history and dividends; Finnhub's free plan has neither). Without it, reports price off Finnhub's live quote, and the price chart, dividends, risk and quant sections stay empty.
    - `FRED_API_KEY` (optional): live interest rates.
 4. The first build takes about ten minutes. The app is then at the `onrender.com` address shown on the service's page, and every push redeploys it.
 

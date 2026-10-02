@@ -111,12 +111,31 @@ class ReportContext:
     @cached_property
     def last_price(self) -> float | None:
         if self.prices.empty:
-            return None
+            # no daily history (e.g. Finnhub's free plan): today's report can still price off the live quote
+            q = self._live_quote
+            return float(q.price) if q is not None else None
         return float(self.prices["close"].iloc[-1])
 
     @cached_property
     def last_price_date(self) -> date | None:
-        return None if self.prices.empty else self.prices.index[-1].date()
+        if self.prices.empty:
+            q = self._live_quote
+            return (q.timestamp.date() if q.timestamp else self.as_of) if q is not None else None
+        return self.prices.index[-1].date()
+
+    @property
+    def _live_quote(self):
+        return self.quote if self.as_of >= clock.today() else None
+
+    def peer_price(self, ticker: str, days: int) -> tuple[float | None, pd.DataFrame]:
+        """A peer's latest price and its daily history, for multiples and the 1-year return. On the free tier, with a
+        quote source, the quote alone: history for every peer would spend a rate-limited plan (Tiingo's free
+        plan allows 50 requests an hour) on a column the comparison can do without."""
+        if self.data.p.tier == "free" and self.data.p.quote is not None and self.as_of >= clock.today():
+            q = self.data.quote(ticker).value
+            return (float(q.price) if q is not None else None), pd.DataFrame()
+        px = self.other_prices(ticker, days)
+        return (float(px["close"].iloc[-1]) if not px.empty else None), px
 
     @cached_property
     def quote(self):

@@ -420,3 +420,9 @@ The first live test also showed:
 - A failed ticker list now returns 503 with its reason.
 - Finnhub's free plan answers `stock/candle` with 403 "You don't have access to this resource". That now reads as a plan limit, not a rejected key, and the reason suggests a free `TIINGO_API_KEY` for daily prices.
 - Finnhub's free quote serves the latest price whenever its key is set.
+
+With Finnhub alone, then, there is no daily history, so the second live run showed every price-based section empty and valuation reading "no price". Changes:
+- A report for today now prices off the live quote when there is no history. Valuation, the Trust Rating's valuation pillar and analyst upside all work; beta and volatility fall back to their defaults, as they already did for a short history.
+- Dividends say they are unknown instead of "has not paid a dividend". Dividend events come with the price history.
+- On the free tier with a quote source, peers are priced off their quotes, not their histories. The peer table loses its 1-year return. In exchange, a report spends one or two Tiingo requests instead of fifteen, against the free plan's 50 an hour.
+- FINRA answered the short-interest query with 400. That query is unverified, since FINRA is unreachable from the build environment. The adapter now asks for a date range without server-side sorting, falls back to a bare symbol filter on a 400, and logs FINRA's message.

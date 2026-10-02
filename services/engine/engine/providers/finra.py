@@ -7,12 +7,15 @@ adapter could not be exercised against the live API from the build environment.
 
 from __future__ import annotations
 
-from datetime import date
+import logging
+from datetime import date, timedelta
 
-from engine.http.client import HttpClient, get_http
+from engine import clock
+from engine.http.client import HttpClient, ProviderError, get_http
 from engine.providers.models import ShortInterestPoint
 
 URL = "https://api.finra.org/data/group/otcMarket/name/consolidatedShortInterest"
+log = logging.getLogger(__name__)
 
 
 def _first(d: dict, *keys):
@@ -30,18 +33,32 @@ class Finra:
         self.http = http or get_http()
 
     def short_interest(self, ticker: str) -> list[ShortInterestPoint]:
-        body = self.http.post(
-            "finra",
-            URL,
-            json_body={
-                "compareFilters": [
-                    {"compareType": "EQUAL", "fieldName": "symbolCode", "fieldValue": ticker.upper()}
+        symbol = {"compareType": "EQUAL", "fieldName": "symbolCode", "fieldValue": ticker.upper()}
+        start = (clock.today() - timedelta(days=800)).isoformat()
+        queries = [
+            # about two years of settlements (two a month); sorted here, not by the API
+            {
+                "compareFilters": [symbol],
+                "dateRangeFilters": [
+                    {"fieldName": "settlementDate", "startDate": start, "endDate": clock.today().isoformat()}
                 ],
-                "sortFields": ["-settlementDate"],
-                "limit": 60,
+                "limit": 100,
             },
-            headers={"Accept": "application/json", "Content-Type": "application/json"},
-        ).body
+            {"compareFilters": [symbol], "limit": 5000},
+        ]
+        for i, query in enumerate(queries):
+            try:
+                body = self.http.post(
+                    "finra",
+                    URL,
+                    json_body=query,
+                    headers={"Accept": "application/json", "Content-Type": "application/json"},
+                ).body
+                break
+            except ProviderError as e:
+                if e.kind != "bad_response" or i == len(queries) - 1:
+                    raise
+                log.warning("FINRA rejected a short-interest query (%s); trying a simpler one", e.message)
         rows = body if isinstance(body, list) else body.get("data", []) if isinstance(body, dict) else []
         out = []
         for r in rows:

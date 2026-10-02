@@ -254,8 +254,10 @@ def peer_table(ctx: ReportContext, universe: Universe | None, tickers: list[str]
         m: dict[str, float | None] = {}
         v = urow.values if urow else {}
         rat = urow.ratios if urow else {}
-        px = ctx.prices if is_subject else ctx.other_prices(t, days)
-        price = float(px["close"].iloc[-1]) if not px.empty else None
+        if is_subject:
+            px, price = ctx.prices, ctx.last_price
+        else:
+            price, px = ctx.peer_price(t, days)
         shares = v.get("shares_diluted")
         mcap = price * shares if (price and shares) else None
         if is_subject and ctx.market_cap:

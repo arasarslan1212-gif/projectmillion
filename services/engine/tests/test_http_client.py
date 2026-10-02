@@ -129,3 +129,28 @@ def test_fixture_store_is_deterministic(tmp_path):
     b1 = st.path("sec", "k1").read_bytes()
     st.save("sec", "k1", "GET", "https://x.test", None, None, HttpResponse(200, {"a": 1}, "application/json"))
     assert st.path("sec", "k1").read_bytes() == b1
+
+
+def test_finra_falls_back_to_a_simpler_query_when_one_is_rejected(tmp_path):
+    import json
+
+    from engine.providers.finra import Finra
+
+    bodies = []
+
+    def handler(req):
+        body = json.loads(req.content)
+        bodies.append(body)
+        if "dateRangeFilters" in body:
+            return httpx.Response(400, json={"message": "unsupported filter"})
+        return httpx.Response(
+            200,
+            json=[
+                {"settlementDate": "2026-08-15", "currentShortPositionQuantity": 120},
+                {"settlementDate": "2026-07-31", "currentShortPositionQuantity": 100},
+            ],
+        )
+
+    pts = Finra(_client(handler, tmp_path)).short_interest("aapl")
+    assert [p.short_interest for p in pts] == [100, 120]  # oldest first
+    assert len(bodies) == 2 and bodies[1]["compareFilters"][0]["fieldValue"] == "AAPL"

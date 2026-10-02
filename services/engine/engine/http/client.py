@@ -89,7 +89,8 @@ DEFAULT_POLICIES: dict[str, ProviderPolicy] = {
     "sec": ProviderPolicy(rate_per_sec=5.0, burst=2),  # SEC fair access allows 10/s; stay well below
     "fred": ProviderPolicy(rate_per_sec=1.5, burst=2),  # ~120/min documented
     "finra": ProviderPolicy(rate_per_sec=2.0, burst=2),
-    "tiingo": ProviderPolicy(rate_per_sec=0.3, burst=2),  # free tier: 50/hour, 1000/day
+    # free tier: 50/hour and 1000/day; pacing can't raise that, so it only keeps bursts polite
+    "tiingo": ProviderPolicy(rate_per_sec=1.0, burst=5),
     "fmp": ProviderPolicy(rate_per_sec=4.0, burst=4),  # starter: 300/min
     "finnhub": ProviderPolicy(rate_per_sec=0.9, burst=2),  # free: 60/min
     "massive": ProviderPolicy(rate_per_sec=1.5, burst=2),

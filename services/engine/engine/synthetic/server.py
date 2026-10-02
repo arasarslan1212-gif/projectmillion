@@ -1168,6 +1168,23 @@ class SyntheticServer:
                     for e in ev
                 ]
             )
+        if path == "quote":
+            try:
+                fq = self._quote(sym)
+            except KeyError:  # Finnhub answers unknown symbols with zeros
+                return _json({"c": 0, "d": None, "dp": None, "h": 0, "l": 0, "o": 0, "pc": 0, "t": 0})
+            return _json(
+                {
+                    "c": fq["price"],
+                    "d": fq["change"],
+                    "dp": fq["changePercentage"],
+                    "h": fq["dayHigh"],
+                    "l": fq["dayLow"],
+                    "o": fq["previousClose"],
+                    "pc": fq["previousClose"],
+                    "t": fq["timestamp"],
+                }
+            )
         if path == "calendar/earnings":
             ev = [e for e in self._earnings(sym)]
             return _json(
