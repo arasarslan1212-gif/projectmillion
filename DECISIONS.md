@@ -404,3 +404,19 @@ The deploy workflow:
 4. with `HF_TOKEN`, deploys to a Hugging Face Space (`deploy/hf_space.py`: create a private Space, copy the keys into its secrets, upload, wait until it runs, print the logs on failure).
 
 Why Hugging Face: its free CPU Spaces offer 2 vCPUs and 16 GB with no card, against 512 MB and a fraction of a CPU on Render's free plan (`render.yaml` is kept as an alternative). The Space is private by default, keeping within the free data plans' personal-use terms. The static site (D-062 to D-064) remains available by manual run.
+
+## D-066 Render's free plan as the default host; findings from the first live run
+
+The first deploy hit two surprises:
+- Hugging Face answered `402 Payment Required`: Docker and Gradio Spaces on free CPUs now need a PRO subscription. `deploy/hf_space.py` says so and stays available for PRO accounts.
+- The README now leads with Render's free plan (`render.yaml`, deployed by Render from the repository). Its cost is speed: 0.1 CPU, so a stock's first report takes one to two minutes, and the service sleeps when idle.
+
+To keep the app within the free plan's 512 MB:
+- CI runs both container tests with `--memory 512m` and reports peak memory (`deploy/memory.sh`).
+- The SEC adapter keeps only the facts behind the standard line items. A large filer's companyfacts holds thousands of concepts nothing reads, and the report loads up to 12 peers' facts.
+
+The first live test also showed:
+- A `SEC_USER_AGENT` secret ending in whitespace made every SEC request invalid before it was sent. httpx rejects such header values, so the ticker list failed and every stock read "not a US-listed ticker". Settings now strip pasted keys and reduce the User-Agent to one line of printable ASCII.
+- A failed ticker list now returns 503 with its reason.
+- Finnhub's free plan answers `stock/candle` with 403 "You don't have access to this resource". That now reads as a plan limit, not a rejected key, and the reason suggests a free `TIINGO_API_KEY` for daily prices.
+- Finnhub's free quote serves the latest price whenever its key is set.

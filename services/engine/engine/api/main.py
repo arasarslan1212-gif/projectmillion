@@ -45,8 +45,18 @@ app.add_middleware(
 )
 
 
+def _symbols_unavailable() -> HTTPException | None:
+    """A 503 naming the reason when the SEC ticker list can't be loaded, so no ticker is reported as unknown."""
+    fx = get_data().symbols()
+    if fx.value:
+        return None
+    return HTTPException(503, detail=f"The SEC ticker list couldn't be loaded: {fx.reason or 'no data'}")
+
+
 def _not_found(ticker: str) -> HTTPException:
-    return HTTPException(404, detail=f"'{ticker.upper()}' is not a US-listed ticker in the SEC ticker list.")
+    return _symbols_unavailable() or HTTPException(
+        404, detail=f"'{ticker.upper()}' is not a US-listed ticker in the SEC ticker list."
+    )
 
 
 @app.get("/api/health")
@@ -69,6 +79,8 @@ def health() -> dict:
 @app.get("/api/search")
 def search(q: str = Query(..., min_length=1, max_length=60), limit: int = 10) -> dict:
     res = get_data().search(q, limit=min(limit, 25))
+    if not res and (err := _symbols_unavailable()):
+        raise err
     return {"results": [{"ticker": r.ticker, "name": r.name, "exchange": r.exchange} for r in res]}
 
 

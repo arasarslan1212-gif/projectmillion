@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 from engine.api.main import app
+from engine.data.service import Fetched, get_data
 
 
 def test_health_search_sections_and_404():
@@ -26,3 +27,12 @@ def test_unprofitable_company_pe_is_explained_not_invented():
         pe = comp["stats"]["pe"]
         assert pe["value"] is None and pe["status"] == "insufficient_data" and "negative" in pe["reason"]
         assert comp["identity"]["profile"] == "growth_unprofitable"
+
+
+def test_unloadable_ticker_list_is_a_503_with_the_reason_not_an_unknown_ticker(monkeypatch):
+    reason = "sec is temporarily unavailable"
+    monkeypatch.setattr(get_data(), "symbols", lambda: Fetched(None, "SEC EDGAR", None, "missing", reason))
+    with TestClient(app) as c:
+        for path in ("/api/report/AAPL/section/company", "/api/search?q=aapl"):
+            r = c.get(path)
+            assert r.status_code == 503 and reason in r.json()["detail"], path

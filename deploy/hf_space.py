@@ -1,4 +1,5 @@
-"""Deploy the app (the Dockerfile at the repository root) to a Hugging Face Space, from CI.
+"""Deploy the app (the Dockerfile at the repository root) to a Hugging Face Space, from CI. Docker Spaces need a
+Hugging Face PRO subscription; Render's free plan (render.yaml) is the free alternative.
 
 Creates the Space if it doesn't exist (private by default), copies the data keys into the Space's secrets, uploads
 the build context and waits until the new version runs. On a failed build or start it prints the Space's logs.
@@ -23,6 +24,7 @@ import time
 from pathlib import Path
 
 from huggingface_hub import HfApi
+from huggingface_hub.errors import HfHubHTTPError
 
 ROOT = Path(__file__).resolve().parents[1]
 SECRETS = [
@@ -94,9 +96,19 @@ def main() -> int:
     owner = api.whoami()["name"]
     repo = os.environ.get("HF_SPACE") or f"{owner}/candor"
     private = os.environ.get("HF_SPACE_PRIVATE", "true").lower() != "false"
-    api.create_repo(
-        repo, repo_type="space", space_sdk="docker", private=private, exist_ok=True
-    )
+    try:
+        api.create_repo(
+            repo, repo_type="space", space_sdk="docker", private=private, exist_ok=True
+        )
+    except HfHubHTTPError as e:
+        if e.response is not None and e.response.status_code == 402:
+            print(
+                "Hugging Face requires a PRO subscription to host Docker Spaces "
+                "(https://huggingface.co/pro). Subscribe, or deploy to Render's free plan instead (README: "
+                "Deploy the live app) and delete the HF_TOKEN secret to stop this step."
+            )
+            return 1
+        raise
     print(f"Space: https://huggingface.co/spaces/{repo}")
 
     set_keys = [k for k in SECRETS if os.environ.get(k)]

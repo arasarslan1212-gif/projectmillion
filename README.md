@@ -68,19 +68,30 @@ Serve `apps/web/out` with any static file server. Leave out `NEXT_PUBLIC_BROWSER
 
 ## Deploy the live app
 
-The app runs as one Docker container: the Python engine and the web server together (the `Dockerfile` at the repository root). With data keys it researches any US-listed stock live; without them it runs on the synthetic market, labeled as such. `.github/workflows/deploy.yml` builds and tests the image on every push and deploys it to a [Hugging Face Space](https://huggingface.co/spaces). Spaces are free and run the container on 2 CPUs and 16 GB of memory; a free Space sleeps after two days without visits and wakes on the next one.
+The app runs as one Docker container: the Python engine and the web server together (the `Dockerfile` at the repository root). With data keys it researches any US-listed stock live; without them it runs on the synthetic market, labeled as such. `.github/workflows/deploy.yml` builds the image on every push and tests it within 512 MB of memory, on the synthetic market and, when the data secrets are set, on live data.
 
-1. Create a free account at https://huggingface.co. In Settings → Access Tokens, create a token with **Write** permission.
-2. In this repository, open **Settings → Secrets and variables → Actions** and add these secrets:
-   - `HF_TOKEN`: the token from step 1.
+### On Render (free)
+
+`render.yaml` describes the service for [Render](https://render.com):
+
+1. Sign in to https://render.com with your GitHub account.
+2. Choose **New → Blueprint**, connect this repository and pick its branch. Render reads `render.yaml`.
+3. Fill in the values it asks for, then click **Apply**:
    - `SEC_USER_AGENT`: your name and email, e.g. `Jane Doe jane@example.com`. The SEC requires a real contact.
-   - `FINNHUB_API_KEY`: a free key from https://finnhub.io/register.
-   - Optional: `TIINGO_API_KEY` for fuller price history (free, personal use), `FRED_API_KEY` for live interest rates, and `FMP_API_KEY` for the paid starter tier.
-3. Run **Actions → Deploy app → Run workflow**; later pushes deploy automatically.
+   - `FINNHUB_API_KEY`: a free key from https://finnhub.io/register (quotes, news, analyst consensus, earnings).
+   - `TIINGO_API_KEY`: a free key from https://www.tiingo.com (daily price history; Finnhub's free plan has none). Without it, the price chart, valuation and risk sections stay empty.
+   - `FRED_API_KEY` (optional): live interest rates.
+4. The first build takes about ten minutes. The app is then at the `onrender.com` address shown on the service's page, and every push redeploys it.
 
-The workflow creates a **private** Space named `<you>/candor`: only you, signed in to Hugging Face, can open it, which keeps within the free data plans' personal-use terms. It copies your keys into the Space's secrets and prints the app's address when it's running. To use a different Space, set the `HF_SPACE` repository variable (owner/name); to make a new Space public, set `HF_SPACE_PRIVATE` to `false`.
+On the free plan the service sleeps after 15 minutes without visits, and the next visit wakes it in about a minute. It also gets a tenth of a CPU, so a stock's first report takes a minute or two; reports already computed that day show at once. Anyone with the address can use the app. Tiingo's free plan is for personal use, so keep the address to yourself. For a faster service, change `plan: free` to `starter` in `render.yaml`.
 
-The same image runs on any Docker host (Render via `render.yaml`, Railway, Fly.io, a VPS). Pass the same variables and route port `$PORT` (default 7860). The database is SQLite in `/tmp`, so history (track record, alerts) resets when the container restarts, unless `DATABASE_URL` points at persistent storage.
+### On a Hugging Face Space (PRO)
+
+Hugging Face hosts Docker Spaces only with a [PRO subscription](https://huggingface.co/pro). With it, the Space gets 2 CPUs and 16 GB of memory, and can be private to your account. Create a token with **Write** permission (Settings → Access Tokens) and add it as the `HF_TOKEN` repository secret, along with the data keys above as secrets (**Settings → Secrets and variables → Actions**). Then run **Actions → Deploy app → Run workflow**. The workflow creates a private Space named `<you>/candor`, copies the keys into it, and prints the app's address once it's running. Set the `HF_SPACE` repository variable (owner/name) to choose another Space, or `HF_SPACE_PRIVATE` to `false` to make a new one public.
+
+### Elsewhere
+
+The same image runs on any Docker host (Railway, Fly.io, Google Cloud Run, a VPS). Pass the same variables and route port `$PORT` (default 7860). The database is SQLite in `/tmp`, so history (track record, alerts) resets when the container restarts, unless `DATABASE_URL` points at persistent storage.
 
 ## What's in the app
 

@@ -100,6 +100,8 @@ def build_providers(tier: str | None = None, http: HttpClient | None = None) -> 
     fmp = Fmp(http) if tier in ("starter", "pro") else None
     massive = MassiveBenzinga(http) if tier == "pro" else None
     prices = fmp or free_prices(finnhub, http)
+    # Finnhub's quote is free, so it serves the latest price whenever its key is set, whatever the daily bars' source
+    quote = fmp or (finnhub if prices is finnhub or get_settings().finnhub_api_key else None)
     analysts = massive or fmp
     return Providers(
         tier=tier,
@@ -109,7 +111,7 @@ def build_providers(tier: str | None = None, http: HttpClient | None = None) -> 
         universe=sec,
         screener=fmp,
         prices=prices,
-        quote=fmp or (finnhub if prices is finnhub else None),
+        quote=quote,
         profile=fmp,
         estimates=fmp,
         earnings=[p for p in (fmp, finnhub) if p is not None],

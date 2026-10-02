@@ -45,14 +45,19 @@ class ProviderError(Exception):
         "bad_response",
     }
 
-    def __init__(self, provider: str, kind: str, message: str) -> None:
+    def __init__(self, provider: str, kind: str, message: str, hint: str | None = None) -> None:
         assert kind in self.KINDS, kind
         super().__init__(f"[{provider}] {kind}: {message}")
         self.provider = provider
         self.kind = kind
         self.message = message
+        self.hint = hint  # what the operator can do about it, appended to the user-facing reason
 
     def user_reason(self) -> str:
+        reason = self._reason()
+        return f"{reason}. {self.hint}" if self.hint else reason
+
+    def _reason(self) -> str:
         if self.provider == "sec" and self.kind == "auth":  # the SEC has no keys; a 403 means the User-Agent
             return (
                 "SEC EDGAR refused the request: its fair-access policy requires a User-Agent naming the app "
@@ -371,7 +376,8 @@ class HttpClient:
             body = str(resp.body)[:300].lower()
             kind = (
                 "plan_restricted"
-                if ("plan" in body or "subscription" in body or "premium" in body)
+                # Finnhub answers premium endpoints with "You don't have access to this resource."
+                if any(w in body for w in ("plan", "subscription", "premium", "access to this resource"))
                 else "auth"
             )
             raise ProviderError(provider, kind, f"HTTP {resp.status}: {str(resp.body)[:200]}")

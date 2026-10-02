@@ -1,8 +1,9 @@
-# Builds the app's Docker image (Dockerfile at the root: engine + web in one container), tests it, and deploys it
-# to a Hugging Face Space.
+# Builds the app's Docker image (Dockerfile at the root: engine + web in one container) and tests it within the
+# memory of Render's free plan (render.yaml; Render deploys from the repository itself). Optionally deploys it to a
+# Hugging Face Space, which needs a Hugging Face PRO subscription for Docker Spaces.
 #
 # Repository secrets:
-#   HF_TOKEN                          a Hugging Face access token with write permission; without it, nothing deploys
+#   HF_TOKEN                          optional: a Hugging Face write token; without it, this workflow only tests
 #   SEC_USER_AGENT, FINNHUB_API_KEY   live data (your "Name email" for the SEC, and a Finnhub key); without them
 #                                     the app runs on the synthetic market
 #   TIINGO_API_KEY, FRED_API_KEY, FMP_API_KEY   optional: fuller price history, live rates, the starter data tier
@@ -31,10 +32,12 @@ jobs:
       - name: Build the image
         run: docker build -t candor .
 
+      # Both tests run within 512 MB, the memory of Render's free plan.
       - name: Test the app on the synthetic market
         run: |
-          docker run -d --name synthetic -p 7860:7860 candor
+          docker run -d --name synthetic --memory 512m --memory-swap 512m -p 7860:7860 candor
           python3 deploy/smoke.py http://127.0.0.1:7860 ZZTEC ZZBNK --synthetic || { docker logs synthetic | tail -80; exit 1; }
+          deploy/memory.sh synthetic
           docker rm -f synthetic
 
       # Diagnostic: shows what each section gets from the live sources. It doesn't block the deploy, since a
@@ -52,10 +55,11 @@ jobs:
             echo "::notice::No live-data secrets (SEC_USER_AGENT and FINNHUB_API_KEY); skipping the live test."
             exit 0
           fi
-          docker run -d --name live -p 7861:7860 -e SEC_USER_AGENT -e FINNHUB_API_KEY -e TIINGO_API_KEY \
-            -e FRED_API_KEY -e FMP_API_KEY candor
+          docker run -d --name live --memory 512m --memory-swap 512m -p 7861:7860 -e SEC_USER_AGENT \
+            -e FINNHUB_API_KEY -e TIINGO_API_KEY -e FRED_API_KEY -e FMP_API_KEY candor
           status=0
           python3 deploy/smoke.py http://127.0.0.1:7861 AAPL JPM || status=$?
+          deploy/memory.sh live || status=1
           echo "--- engine log (last lines) ---"
           docker logs live 2>&1 | grep -v " 200 OK" | tail -120
           exit $status
@@ -69,7 +73,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Deploy to the Hugging Face Space
+      - name: Deploy to the Hugging Face Space (optional, needs Hugging Face PRO)
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           HF_SPACE: ${{ vars.HF_SPACE }}
@@ -81,7 +85,7 @@ jobs:
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
         run: |
           if [ -z "$HF_TOKEN" ]; then
-            echo "::notice::Add an HF_TOKEN repository secret (a Hugging Face write token) to deploy the app."
+            echo "No HF_TOKEN secret: not deploying to Hugging Face (Render deploys from the repository; see README)."
             exit 0
           fi
           pip install --quiet huggingface_hub==1.33.0

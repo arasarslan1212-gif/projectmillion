@@ -1,3 +1,5 @@
+from datetime import date
+
 import httpx
 import pytest
 
@@ -61,6 +63,39 @@ def test_status_mapping(tmp_path):
     with pytest.raises(ProviderError) as e:
         c.get("fmp", "https://x.test/premium")
     assert e.value.kind == "plan_restricted"
+
+
+def test_finnhub_premium_endpoint_is_a_plan_limit_not_a_bad_key(tmp_path, monkeypatch):
+    from engine.providers.finnhub import Finnhub
+
+    monkeypatch.setenv("FINNHUB_API_KEY", "k")
+
+    def handler(req):
+        return httpx.Response(403, json={"error": "You don't have access to this resource."})
+
+    c = _client(handler, tmp_path)
+    with pytest.raises(ProviderError) as e:
+        c.get("finnhub", "https://x.test/stock/candle")
+    assert e.value.kind == "plan_restricted"
+    from engine.settings import reset_settings_cache
+
+    reset_settings_cache()
+    try:
+        with pytest.raises(ProviderError) as e:
+            Finnhub(c).history("AAPL", date(2025, 1, 1), date(2025, 6, 30))
+    finally:
+        reset_settings_cache()
+    assert "higher subscription plan" in e.value.user_reason() and "TIINGO_API_KEY" in e.value.user_reason()
+
+
+def test_pasted_secrets_are_cleaned(monkeypatch):
+    # a trailing newline or space makes an HTTP header invalid, failing every request before it is sent
+    monkeypatch.setenv("SEC_USER_AGENT", "Jane  Doe\tjane@example.com \n")
+    monkeypatch.setenv("FINNHUB_API_KEY", " abc123\n")
+    monkeypatch.setenv("TIINGO_API_KEY", "  ")
+    s = Settings()
+    assert s.sec_user_agent == "Jane Doe jane@example.com"
+    assert s.finnhub_api_key == "abc123" and s.tiingo_api_key is None
 
 
 def test_record_then_replay_without_secrets(tmp_path):

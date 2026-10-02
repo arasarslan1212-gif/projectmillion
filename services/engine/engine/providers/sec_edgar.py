@@ -19,6 +19,7 @@ import re
 import xml.etree.ElementTree as ET
 from datetime import date, datetime
 
+from engine.fundamentals.concepts import LINE_ITEMS
 from engine.http.client import HttpClient, ProviderError, get_http
 from engine.providers.models import (
     CompanyMeta,
@@ -162,10 +163,15 @@ class SecEdgar:
 
     # -- XBRL ------------------------------------------------------------------------
     def company_facts(self, cik: int) -> list[Fact]:
+        """The facts behind the standard line items (fundamentals/concepts.py). A large filer reports thousands of
+        other concepts that nothing reads; keeping them would multiply the memory each company takes."""
         body = self._get(f"{DATA}/api/xbrl/companyfacts/CIK{cik10(cik)}.json")
+        wanted = {(li.taxonomy, c) for li in LINE_ITEMS.values() for c in li.concepts}
         facts: list[Fact] = []
         for taxonomy, concepts in (body.get("facts") or {}).items():
             for concept, spec in concepts.items():
+                if (taxonomy, concept) not in wanted:
+                    continue
                 for unit, rows in (spec.get("units") or {}).items():
                     for r in rows:
                         end = _d(r.get("end"))

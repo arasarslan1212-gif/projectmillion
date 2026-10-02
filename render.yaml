@@ -1,5 +1,6 @@
-# Render Blueprint (https://render.com/docs/blueprint-spec): New → Blueprint → pick this repository.
-# The free plan (512 MB, a fraction of a CPU, sleeps when idle) is tight for this app; "starter" is more comfortable.
+# Render Blueprint (https://render.com/docs/blueprint-spec): New → Blueprint → pick this repository (README:
+# "Deploy the live app"). Free plan: 512 MB and a tenth of a CPU, asleep after 15 idle minutes; the app fits in the
+# memory (CI tests it within 512 MB), and "starter" makes it faster.
 services:
   - type: web
     name: candor
@@ -10,9 +11,9 @@ services:
     envVars:
       - key: SEC_USER_AGENT # your "Name email", required by the SEC
         sync: false
-      - key: FINNHUB_API_KEY
+      - key: FINNHUB_API_KEY # quotes, news, analyst consensus, earnings
         sync: false
-      - key: TIINGO_API_KEY
+      - key: TIINGO_API_KEY # daily price history (Finnhub's free plan has none)
         sync: false
-      - key: FRED_API_KEY
+      - key: FRED_API_KEY # optional: live interest rates
         sync: false

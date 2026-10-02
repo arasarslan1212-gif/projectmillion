@@ -148,7 +148,14 @@ class Finnhub:
         the split-adjusted close (price return, not total return)."""
         t0 = int(datetime(start.year, start.month, start.day, tzinfo=UTC).timestamp())
         t1 = int(datetime(end.year, end.month, end.day, 23, 59, tzinfo=UTC).timestamp())
-        b = self._get("stock/candle", symbol=ticker.upper(), resolution="D", **{"from": t0, "to": t1})
+        try:
+            b = self._get("stock/candle", symbol=ticker.upper(), resolution="D", **{"from": t0, "to": t1})
+        except ProviderError as e:
+            if e.kind == "plan_restricted":
+                e.hint = (
+                    "Finnhub's free plan has no price history; a free TIINGO_API_KEY (tiingo.com) adds it"
+                )
+            raise
         if not isinstance(b, dict) or b.get("s") not in ("ok", "no_data"):
             raise ProviderError("finnhub", "bad_response", str(b)[:200])
         bars = []

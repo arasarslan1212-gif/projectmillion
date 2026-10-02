@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import re
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -52,6 +53,33 @@ class Settings(BaseSettings):
     as_of_override: str | None = None
     enable_scheduler: bool = False
     cors_origins: str = "http://localhost:3000"
+
+    # Values pasted into secret stores often carry a trailing newline or space; in an HTTP header that makes the
+    # request invalid before it is sent, so every call to that provider would fail.
+    @field_validator(
+        "fred_api_key",
+        "fmp_api_key",
+        "finnhub_api_key",
+        "tiingo_api_key",
+        "massive_api_key",
+        "anthropic_api_key",
+        mode="before",
+    )
+    @classmethod
+    def _strip_key(cls, v: object) -> object:
+        if isinstance(v, str):
+            v = v.strip()
+            return v or None
+        return v
+
+    @field_validator("sec_user_agent", mode="before")
+    @classmethod
+    def _clean_user_agent(cls, v: object) -> object:
+        if isinstance(v, str):
+            # one line of printable ASCII, single spaces: what an HTTP header allows
+            v = re.sub(r"[^\x21-\x7e]+", " ", v).strip()
+            return v or "StockAnalysisApp contact@example.com"
+        return v
 
     @property
     def active_fixture_set(self) -> str:
