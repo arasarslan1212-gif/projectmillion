@@ -25,7 +25,7 @@ concurrency:
 jobs:
   image:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
 
@@ -40,8 +40,9 @@ jobs:
           deploy/memory.sh synthetic
           docker rm -f synthetic
 
-      # Diagnostic: shows what each section gets from the live sources. It doesn't block the deploy, since a
-      # provider's gap shows as "missing" on the page rather than breaking it.
+      # Diagnostic: shows what each section gets from the live sources, and how long a first report takes on a
+      # tenth of a CPU, as on Render's free plan. It doesn't block the deploy, since a provider's gap shows as
+      # "missing" on the page rather than breaking it.
       - name: Test the app on live data
         continue-on-error: true
         env:
@@ -55,7 +56,7 @@ jobs:
             echo "::notice::No live-data secrets (SEC_USER_AGENT and FINNHUB_API_KEY); skipping the live test."
             exit 0
           fi
-          docker run -d --name live --memory 512m --memory-swap 512m -p 7861:7860 -e SEC_USER_AGENT \
+          docker run -d --name live --memory 512m --memory-swap 512m --cpus 0.1 -p 7861:7860 -e SEC_USER_AGENT \
             -e FINNHUB_API_KEY -e TIINGO_API_KEY -e FRED_API_KEY -e FMP_API_KEY candor
           status=0
           python3 deploy/smoke.py http://127.0.0.1:7861 AAPL JPM || status=$?

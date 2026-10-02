@@ -25,6 +25,15 @@ echo "Data: mode=$DATA_MODE tier=$DATA_TIER price_source=$PRICE_SOURCE"
 
 cd /app/services/engine
 uvicorn engine.api.main:app --host 127.0.0.1 --port 8000 --timeout-keep-alive 75 &
+engine=$!
+# Open the public port only once the engine listens (after its startup), so a host waking the container routes
+# the first visit to a working app rather than to "the engine isn't reachable". On a tenth of a CPU the engine's
+# imports take most of a minute. The check is a bare TCP connect: spawning a process per try would cost more.
+until (exec 3<>/dev/tcp/127.0.0.1/8000) 2>/dev/null; do
+  kill -0 "$engine" 2>/dev/null || { echo "The engine exited during startup"; exit 1; }
+  sleep 0.5
+done
+echo "Engine ready"
 cd /app/web
 HOSTNAME=0.0.0.0 node server.js &
 wait -n

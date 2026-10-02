@@ -16,7 +16,7 @@ import urllib.request
 
 
 def get(
-    base: str, path: str, timeout: float = 330, body: dict | None = None
+    base: str, path: str, timeout: float = 930, body: dict | None = None
 ) -> tuple[int, object, float]:
     """GET, or POST a JSON body. Returns (status, parsed body, seconds)."""
     t0 = time.time()

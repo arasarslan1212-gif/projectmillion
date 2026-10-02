@@ -394,7 +394,7 @@ The owner wants an app that researches any stock live, not a static site. The en
 - A report's 17 sections share one in-memory company context, and free provider plans limit calls per minute; stateless function instances would refetch everything for each section.
 
 So the app ships as one Docker image, the root `Dockerfile`:
-- the engine (uvicorn on 127.0.0.1:8000) and the Next.js standalone server, which forwards `/api/engine/*` to the engine with a 5-minute proxy timeout, since first reports on live data can be slow;
+- the engine (uvicorn on 127.0.0.1:8000) and the Next.js standalone server, which forwards `/api/engine/*` to the engine with a long proxy timeout (15 minutes since D-066), since first reports on live data can be slow;
 - `deploy/start.sh` picks live mode when `SEC_USER_AGENT` and a price key are set, and the labeled synthetic market otherwise.
 
 The deploy workflow:
@@ -425,4 +425,5 @@ With Finnhub alone, then, there is no daily history, so the second live run show
 - A report for today now prices off the live quote when there is no history. Valuation, the Trust Rating's valuation pillar and analyst upside all work; beta and volatility fall back to their defaults, as they already did for a short history.
 - Dividends say they are unknown instead of "has not paid a dividend". Dividend events come with the price history.
 - On the free tier with a quote source, peers are priced off their quotes, not their histories. The peer table loses its 1-year return. In exchange, a report spends one or two Tiingo requests instead of fifteen, against the free plan's 50 an hour.
+- Render's tenth of a CPU stretches a first report to minutes. The web server's proxy timeout is now 15 minutes, and the live CI test runs with `--cpus 0.1` to measure it.
 - FINRA answered the short-interest query with 400. That query is unverified, since FINRA is unreachable from the build environment. The adapter now asks for a date range without server-side sorting, falls back to a bare symbol filter on a 400, and logs FINRA's message.
